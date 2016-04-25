@@ -51,7 +51,7 @@
 5. Guardar el nombre en el i-nodo.
 6. Guardar todo 0s.
 7. Se actualiza el bitmap de I-nodos.
-8. SE LE ASOCIA EL SIGUIENTE BLOQUE LIBRE EN LA CREACIÓN?????? (SI NO FUES ASÍ, SI QUE SE NECESITAN 2 BITMAPS).
+8. ¿¿Se le asocia el siguiente bloque de datos libre?? (SI NO,SE NECESITAN 2 BITMAPS).
 
 
 #### openFS (nombre de fichero):
@@ -79,8 +79,6 @@
 4. Si numBytes a escribir + posicion puntero > tamaño máximo datos: Error, y no se escribe ninguno.
 5. Se actualiza el bitmap de bloques de datos usados. <b>REVISAR</b>
 6. Variable que guarde cuandos Bs se han escrito, y se devuelve.
-
-* Asignación de bloque a i-nodo según el bitmap de bloques (suponiendo relación 1:1).
 
 #### lseek (descriptor, offset, whence):
 1. Actualiza la posición del puntero de ese i-nodo a la posicion indicada.
