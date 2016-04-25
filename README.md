@@ -25,8 +25,6 @@
     5. Bloque Directo (1B).
     6. Etiquetas (3B).
 
-<b>Bloques indirectos?????</b>
-
 ### Implementación:
 
 #### MKFS(número ficheros, tamaño disco):
@@ -95,14 +93,14 @@
     1.2 Si no está y <b>hay hueco en los 30 espacios</b>, se crea, con el contador a 1.<br>
 2. Se añade a dicho fichero, el ID de la tag asociada, <b>en caso de haber hueco</b><br>
 
-#### Untag(filename, tag):<br>
+#### Untag (filename, tag):<br>
 1. Se comprueba que dicha etiqueta está en el mapa de etiquetas:<br>
     1.1 Si está, se resta 1 al contador, y se quita el ID del fichero.<br>
     1.2 Si no está: Error.<br>
 2. Se quita de dicho fichero, la tag asociada.<br>
 3. Si el contador de la tag llega a 0, se elimina.<br>
 
-#### listFS(tag, lista):
+#### listFS (tag, lista):
 1. Se comprueba que la etiqueta existe.<br>
 2. Se recorre la lista accediendo a cada uno de los i-nodos.<br>
 3. Se comprueba si dichos ficheros están cerrados.<br>
