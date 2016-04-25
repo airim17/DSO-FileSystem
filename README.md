@@ -3,17 +3,17 @@
 ### Estructuras:
 
 #### Superbloque:
-    1. Mapa de bits, indicando qué bloques están ocupados. (1 long) TRANSFORMACION DIV. ENTRE 2)
-    2. Mapa de bits, indicando qué i-nodos están ocupados. (1 long) TRANSFORMACION DIV. ENTRE 2)
-    * SE NECESITAN LOS 2 BITMAPS? (PORQUE SI HAY RELACIÓN 1:1 NO)
-    3. Mapa de etiquetas 30X (identificador de etiqueta (1B) + nombre de etiqueta (32B) + número de veces(1B) + lista de ficheros con esa etiqueta (1B) TRANSFORMACION DIV. ENTRE 2).
+    1. Mapa de bits, indicando qué bloques están ocupados. (1 long) (TRANSFORMACION DIV. ENTRE 2)
+    2. Mapa de bits, indicando qué i-nodos están ocupados. (1 long) (TRANSFORMACION DIV. ENTRE 2)
+    * SE NECESITAN LOS 2 BITMAPS? (Esperar correo Rafael Sotomayor)
+    3. Mapa de etiquetas 30X (identificador de etiqueta (1B) + nombre de etiqueta (32B) + número de veces(1B) + lista de ficheros con esa etiqueta (1B) (TRANSFORMACION DIV. ENTRE 2)
     4. Numero de i-nodos (1B)
     5. Número de bloques de datos (1B)
     6. Número máximo de ficheros (1B)
     7. Tamaño de disco (short) (entre 320 - 500).
     8. PrimerBloqueDatos. (1B)
-    9. Número mágico (WHAT IS THIS?) (1 int)
-    10. ¿Cuánto padding? (Depende número mágico)
+    9. Número mágico (1 int)
+    10. Padding (hasta ocupar un bloque)
     
     
 #### I-nodo:
@@ -21,8 +21,8 @@
     2. Nombre del fichero (64B).
     3. Tamaño (Short).
     4. Abierto/cerrado (1B).
-    5. Posición en el fichero (Short)
-    5. Bloque Directo (1B). Puede haber más???????????
+    5. Posición en el fichero (Short) <-- Se resetea en el openFS / closeFS
+    5. Bloque Directo (1B).
     6. Etiquetas (3B).
 
 <b>Bloques indirectos?????</b>
@@ -32,15 +32,17 @@
 #### MKFS(número ficheros, tamaño disco):
 1. Comprobar que el tamaño de ficheros NO es superior a 50.
 2. Comprobar que el tamaño del disco está entre 320 y 500 (ya se presupone KB).
-3. Poner todo 0s en la estructura superbloque.
-
+3. Formatea el tamaño de disco indicado escribiendo todo 0s.
+4. Escribe el primer bloque del disco con la información inicial proporcionada, el resto de datos: 0.
 
 #### Mount( ):
-Hacer los de las slides.
+1. Se lee el superbloque (primer bloque del disco).
+2. Se guardar estos datos en el Superbloque (como variable global).
 
 
 #### Unmount( ):
-Hacer lo de las slides.
+1. Escribe en el Superbloque (primer bloque del disco) lo que hay en la variable global.
+2. ¿Escribe 0s en el Superbloque global?
 
 
 #### CreatFS (filename):
