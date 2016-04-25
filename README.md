@@ -27,7 +27,7 @@
 
 ### Implementación:
 
-#### MKFS(número ficheros, tamaño disco):
+#### mkFS (número ficheros, tamaño disco):
 1. Comprobar que el tamaño de ficheros NO es superior a 50.
 2. Comprobar que el tamaño del disco está entre 320 y 500 (ya se presupone KB).
 3. Formatea el tamaño de disco indicado escribiendo todo 0s.
@@ -65,7 +65,7 @@
 2. Cambia el campo del i-nodo y lo pone como "Cerrado" (0).
 
 
-#### readFS(descriptor, buffer, numBytes)
+#### readFS (descriptor, buffer, numBytes)
 1. Se comprueba que el fichero está abierto y si está ocupado(?).
 2. Si lo está, se leen tantos bytes como se indica, utilizando bread() y se guardan en el buffer que nos pasan.
 3. Se lee la posición del puntero (i-nodo) y se pone a leer desde ahí.
