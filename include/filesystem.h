@@ -2,11 +2,11 @@
 #define _USER_H_
 
 /* This file contains the interface of the functions that must be implemented
- * to allow the user access to the file system and the files. IT CANNOT BE 
+ * to allow the user access to the file system and the files. IT CANNOT BE
  * MODIFIED.
  */
 
-#define DEVICE_IMAGE disk.dat
+#define DEVICE_IMAGE "disk.dat"
 #define MAX_FILE_SIZE 4096
 #define MAX_UNDO 10
 #define BLOCK_SIZE 4096
