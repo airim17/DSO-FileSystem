@@ -58,8 +58,8 @@
 
 #### openFS (nombre de fichero):
 1. Comprobar que hay un i-nodo con ese nombre, sino: Error.
-2. Se devuelve el i-nodo ID.
-3. Se cambia el campo del i-nodo y se pone como "Abierto" (1).
+2. Se cambia el campo del i-nodo y se pone como "Abierto" (1).
+3. Devuelve el identificador del i-nodo <b>(como se usa en otros procesos, tiene que marcar el número de bloque)</b>
 
 
 #### closeFS (descriptor del fihero):
