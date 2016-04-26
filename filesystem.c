@@ -17,7 +17,7 @@ typedef struct tag {
 } tag;
 
 typedef struct inode {
-	char name [64];
+	char name [64] = "NULL";
 	unsigned short filePointer;
 	unsigned char directBlock;
 	unsigned char open;
@@ -311,6 +311,63 @@ int lseekFS(int fileDescriptor, long offset, int whence) {
  * successful, 1 if the file already had that tag or -1 in case of error.
  */
 int tagFS(char *fileName, char *tagName) {
+
+	if (sizeof(tagName) > 32 || sizeof(fileName) > 64){
+		return -1;
+	}
+
+	int i, fileExist = 0, numINode;
+	for (i = 0 ; i < superBlock.numberINodes ; i++){
+		if (inodes[i].name == fileName){
+			fileExist = 1;
+			numINode = i;
+		}
+
+	if (fileExiste = 0){
+		return -1;
+	}
+
+
+	int tagID = 0;
+	// If there is already a tag with that name: its counter is increase
+	int i, found = 0;
+	for (i = 0 ; i < 30 ; i++){
+		if (superBlock.tagsMap[i].name == tagName){
+			superBlock.tagsMap[i].repetitions = superBlock.tagsMap[i].repetitions + 1;
+																																								// TODO Actualizar el número con lo de potencias de 2
+			found = 1;
+			tagID = i;
+		}
+	}
+
+	// If there is not any tag with that name: is created
+	if (found == 0){
+		for (i = 0 ; i < 30 ; i++){
+			if (superBlock.tagsMap[i].name == "NULL"){
+				superBlock.tagsMap[i].ID = i;
+				superBlock.tagsMap[i].name = tagName;
+				superBlock.tagsMap[i].repetitions = 1;
+																																								// TODO Actualizar el número con lo de potencias de 2
+				tagID = i;
+			}
+		}
+	}
+
+	tagSpace = 0;
+	for (i = 0 ; i < 3 ; i++){
+		if (inodes[numINode].tags[i] == "NULL"){
+			inodes[numINode].tags[i] = tagID;
+			tagSpace = 1;
+		}
+		if (inodes[numINode].tags[i] == tagName){
+			return 1;
+		}
+	}
+
+	if (tagSpace = 0){
+		return -1;
+	}
+
 	return 0;
 }
 
@@ -319,6 +376,53 @@ int tagFS(char *fileName, char *tagName) {
  * the tag wasn't associated to the file or -1 in case of error.
  */
 int untagFS(char *fileName, char *tagName) {
+
+	if (sizeof(tagName) > 32 || sizeof(fileName) > 64){
+		return -1;
+	}
+
+	int tagID = 0;
+	// If there is already a tag with that name: its counter is decrease
+	int i, found = 0;
+	for (i = 0 ; i < 30 ; i++){
+		if (superBlock.tagsMap[i].name == tagName){
+			superBlock.tagsMap[i].repetitions = superBlock.tagsMap[i].repetitions - 1;
+																																								// TODO Actualizar el número con lo de potencias de 2
+			if (superBlock.tagsMap[i].repetitions == 0){
+				superBlock.tagsMap[i].name = "NULL";
+			}
+			found = 1;
+		}
+	}
+
+	// If there is not a tag with that name: error
+	if (found == 0){
+		return -1;
+	}
+
+	int i, fileExist = 0, numINode;
+	for (i = 0 ; i < superBlock.numberINodes ; i++){
+		if (inodes[i].name == fileName){
+			fileExist = 1;
+			numINode = i;
+		}
+
+	if (fileExiste = 0){
+		return -1;
+	}
+
+	tagFound = 0;
+	for (i = 0 ; i < 3 ; i++){
+		if (inodes[numINode].tags[i] == tagName){
+			inodes[numINode].tags[i] = "NULL";
+			tagFound = 1;
+		}
+	}
+
+	if (tagFound = 0){
+		return -1;
+	}
+
 	return 0;
 }
 
@@ -328,5 +432,12 @@ int untagFS(char *fileName, char *tagName) {
  * case of error.
  */
 int listFS(char *tagName, char **files) {
+
+	if (sizeof(tagName) > 32){
+		return -1;
+	}
+																																								// TODO HACER
+
+
 	return 0;
 }
