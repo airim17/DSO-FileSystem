@@ -7,40 +7,39 @@
 #include <math.h>
 #include <string.h>
 
+/* Types of structs */
 typedef struct tag {
 	unsigned char ID;
 	char name [32];
 	unsigned char repetitions;
 	unsigned char files;
 
-};
+} tag;
 
 typedef struct inode {
 	char name [64];
-	unsigned short size;
 	unsigned short filePointer;
 	unsigned char directBlock;
+	unsigned char open;
 	unsigned char tags [3];
 
-};
+} inode;
 
-typedef struct superblock {
-	unsigned long bitmap;
+typedef struct sblock {
 	struct tag tagsMap [30];
 	unsigned char inodeSize;
 	unsigned char numberINodes;
-	unsigned char firstFreeBlock;
 	unsigned char firstDataBlock;
 	unsigned char maximumFiles;
 	unsigned int deviceSize;
 	unsigned int magicNumber;
 
-};
+} sblock;
 
+/* Global variables */
+sblock superBlock;
+inode inodes[50];
 
-
-struct superblock superBlock;
-char * deviceName = "disk.dat";
 
 /***************************/
 /* File system management. */
@@ -64,17 +63,17 @@ int mkFS(int maxNumFiles, long deviceSize) {
 
 	// Formating the device writting zeroes
 	char zero [BLOCK_SIZE];
-	memset(zero, 0, BLOCK_SIZE);
+	memset(zero, '0', BLOCK_SIZE);
 
-	int error, i;
+	int i;
 	for (i = 0 ; i < ceil(deviceSize / BLOCK_SIZE) ; i++){
-		error = bwrite(deviceName, i, zero);
-		if (error == -1){
+		if (bwrite(DEVICE_IMAGE, i, zero) == -1){
 			return -1;
 		}
 	}
 
-	// Initializing some fields of the superBlock <----------------TODO REVISAR
+
+	// Initializing some fields of the superBlock 																// TODO REVISAR
 	superBlock.inodeSize = sizeof (struct inode);
 	superBlock.firstDataBlock = ceil((maxNumFiles * sizeof(struct inode)) / 4096) + 1;
 	superBlock.maximumFiles = (unsigned char) maxNumFiles;
@@ -90,16 +89,21 @@ int mkFS(int maxNumFiles, long deviceSize) {
  */
 int mountFS() {
 
-	char sblock [BLOCK_SIZE];
+	char block [BLOCK_SIZE];
 
 	// Checking if reading the superblock produces any error
-	if (bread(deviceName, 0, sblock) == -1){
+	if (bread(DEVICE_IMAGE, 0, block) == -1){
 		return -1;
 	}
 
-	// If not, the information is stored in the superBlock
-	memcpy(&superBlock, sblock, sizeof(superBlock));
-	return 0;
+	memcpy(&superBlock, block, sizeof(block));
+
+	// Checking if reading the superblock produces any error
+	if (bread(DEVICE_IMAGE, 1, block) == -1){
+		return -1;
+	}
+
+	memcpy(&inodes, block, sizeof(inode) * 50);
 
 }
 
@@ -109,13 +113,28 @@ int mountFS() {
  */
 int umountFS() {
 
-	// Preapering the block that is going to be writen, including the padding
-	char sblock[BLOCK_SIZE];
-	memset(sblock, 0, BLOCK_SIZE);
-	memcpy(&superBlock, sblock, sizeof(superBlock));
+	// Checking if there are open files
+	int i;
+	for (i = 0 ; i < superBlock.numberINodes ; i++){
+		if (inodes[i].open == 1){
+			return -1;
+		}
+	}
 
-	// Writting the superBlock into the first block of the disk
-	if (bwrite(deviceName, 0, sblock) == -1){
+	char block[BLOCK_SIZE];
+	memset(block, '0', BLOCK_SIZE);
+	memcpy(block, &superBlock, sizeof(block));
+
+	// Writting the superBlock into the first block
+	if (bwrite(DEVICE_IMAGE, 0, block) == -1){
+		return -1;
+	}
+
+	memset(block, '0', BLOCK_SIZE);
+	memcpy(block, &inodes, sizeof(inode) * 50);
+
+	// Writting the array of i-nodes into the second block
+	if (bwrite(DEVICE_IMAGE, 1, block) == -1){
 		return -1;
 	}
 
@@ -145,32 +164,18 @@ int creatFS(char *fileName) {
 		return -1;
 	}
 
-	char block [BLOCK_SIZE];
-	int i;
-
 	// Checking if there is another inode with the same name
-	for (i = 1 ; i < superBlock.firstDataBlock ; i++){
-
-		if (bread(deviceName, i, block) == -1){
+	int i;
+	for (i = 0 ; i < superBlock.numberINodes ; i++){
+		if (inodes[i].name == fileName){
 			return -1;
-		}
-
-		for (i = 0 ; i < floor(BLOCK_SIZE / superBlock.inodeSize) ; i++){
-
-			if (fileName == block[i * superBlock.inodeSize]){
-				return -1;
-			}
 		}
 	}
 
-	struct inode newNode;
-	memcpy(newNode.name, fileName, sizeof(fileName));
-	newNode.directBlock = superBlock.firstFreeBlock;
-
-	// TODO GUARDAR EL INODO EN EL DISCO
-
-	superBlock.firstFreeBlock = superBlock.firstFreeBlock + 1;
+	// Updating the information of the superBlock and the inode
 	superBlock.numberINodes = superBlock.numberINodes + 1;
+	inodes[superBlock.numberINodes-1].name = fileName; 														// TODO REVISAR
+	inodes[superBlock.numberINodes-1].directBlock = superBlock.numberINodes+1;
 
 	return 0;
 }
@@ -182,24 +187,17 @@ int creatFS(char *fileName) {
  */
 int openFS(char *fileName) {
 
-	char block [BLOCK_SIZE];
 	int i;
+	for (i = 0 ; i < superBlock.numberINodes ; i++){
 
-	// Checking if there is any inode with that name
-	for (i = 1 ; i < superBlock.firstDataBlock ; i++){
-
-		if (bread(deviceName, i, block) == -1){
-			return -1;
-		}
-
-		for (i = 0 ; i < floor(BLOCK_SIZE / superBlock.inodeSize) ; i++){
-
-			if (fileName == block[i * superBlock.inodeSize]){
-				return (superBlock.firstDataBlock + block[(i * superBlock.inodeSize) + 78]);
-			}
+		if (inodes[i].name == fileName){
+			inodes[i].open = 1;
+			inodes[i].filePointer = 0;
+			return inodes[i].directBlock;
 		}
 	}
-	return 0;
+
+	return -1;
 }
 
 /*
@@ -207,7 +205,13 @@ int openFS(char *fileName) {
  * Returns 0 if the operation was correct or -1 in case of error.
  */
 int closeFS(int fileDescriptor) {
-	return 0;
+
+	if (inodes[fileDescriptor-2].open == 1){
+		inodes[fileDescriptor-2].open = 0;
+		return 0;
+	}
+
+	return -1;
 }
 
 /*
@@ -215,7 +219,27 @@ int closeFS(int fileDescriptor) {
  * Returns the number of bytes read or -1 in case of error.
  */
 int readFS(int fileDescriptor, void *buffer, int numBytes) {
-	return 0;
+
+	// Checking if the file is open
+	if (inodes[fileDescriptor-2].open == 0){
+		return -1;
+	}
+
+	// Checking if the number of bytes is valid
+	int offset = inodes[fileDescriptor-2].filePointer;
+	if (numBytes < 0 || numBytes > MAX_FILE_SIZE){
+		return -1;
+	}
+
+	// Reading data from the disk
+	char block[BLOCK_SIZE];
+	if (bread(DEVICE_IMAGE, fileDescriptor, block) == -1){
+		return -1;
+	}
+																																								// TODO Que se pueda leer hasta donde se pueda
+	memcpy(buffer, &(block[offset]), numBytes);																		// TODO REVISAR
+	inodes[fileDescriptor-2].filePointer = offset + numBytes;
+	return numBytes;
 }
 
 /*
@@ -224,7 +248,33 @@ int readFS(int fileDescriptor, void *buffer, int numBytes) {
  * of error.
  */
 int writeFS(int fileDescriptor, void *buffer, int numBytes) {
-	return 0;
+
+	// Checking if the file is open
+	if (inodes[fileDescriptor-1].open == 0){
+		return -1;
+	}
+
+	// Checking if the number of bytes is valid
+	int offset = inodes[fileDescriptor-2].filePointer;
+	if (numBytes < 0 || (offset + numBytes) > MAX_FILE_SIZE){
+		return -1;
+	}
+
+	// Checking if the filepointer is just at the end
+	if (offser == MAX_FILE_SIZE){
+		return 0;
+	}
+
+	// Writting data into the disk
+	char block[BLOCK_SIZE];
+	if (bwrite(DEVICE_IMAGE, fileDescriptor, buffer) == -1){
+		return -1;
+	}
+
+	memcpy(&(buffer[offset]), block, numBytes);																		// TODO REVISAR
+	inodes[fileDescriptor-2].filePointer = offset + numBytes;
+																																								// TODO Hay que actualizar el tamaño del fichero
+	return numBytes;
 }
 
 
@@ -234,7 +284,22 @@ int writeFS(int fileDescriptor, void *buffer, int numBytes) {
  * Returns new position or -1 in case of error.
  */
 int lseekFS(int fileDescriptor, long offset, int whence) {
-	return 0;
+
+	if (offset < 0 || offset > MAX_FILE_SIZE){
+		return -1;
+	}
+
+	if (whence == 0){																															// TODO Hay que tener en cuenta el tamaño actual del fichero
+		inodes[fileDescriptor-2].filePointer = offset;
+	}
+	else if (whence == 1){
+		inodes[fileDescriptor-2].filePointer = 0;
+	}
+	else if (whence == 2){
+		inodes[fileDescriptor-2].filePointer = MAX_FILE_SIZE;
+	}
+
+	return offset;
 }
 
 /**********************/
