@@ -19,6 +19,7 @@ typedef struct tag {
 typedef struct inode {
 	char name [64] = "NULL";
 	unsigned short filePointer;
+	unsigned short size;
 	unsigned char directBlock;
 	unsigned char open;
 	unsigned char tags [3];
@@ -273,7 +274,10 @@ int writeFS(int fileDescriptor, void *buffer, int numBytes) {
 
 	memcpy(&(buffer[offset]), block, numBytes);																		// TODO REVISAR
 	inodes[fileDescriptor-2].filePointer = offset + numBytes;
-																																								// TODO Hay que actualizar el tamaño del fichero
+	if (offset + numBytes > inodes[fileDescriptor-2].size){
+		inodes[fileDescriptor-2].size = offset + numBytes;
+	}
+
 	return numBytes;
 }
 
@@ -285,11 +289,11 @@ int writeFS(int fileDescriptor, void *buffer, int numBytes) {
  */
 int lseekFS(int fileDescriptor, long offset, int whence) {
 
-	if (offset < 0 || offset > MAX_FILE_SIZE){
+	if (offset < 0 || offset > inodes[fileDescriptor-2].size){
 		return -1;
 	}
 
-	if (whence == 0){																															// TODO Hay que tener en cuenta el tamaño actual del fichero
+	if (whence == 0){
 		inodes[fileDescriptor-2].filePointer = offset;
 	}
 	else if (whence == 1){
@@ -436,8 +440,35 @@ int listFS(char *tagName, char **files) {
 	if (sizeof(tagName) > 32){
 		return -1;
 	}
-																																								// TODO HACER
 
+	int tagID = 0;
+	// If there is already a tag with that name: its counter is decrease
+	int i, found = 0, remain;
+	for (i = 0 ; i < 30 ; i++){
+		if (superBlock.tagsMap[i].name == tagName){
+			remain = superBlock.tagsMap[i].files;
+			found = 1;
+		}
+	}
+
+	if (found == 0){
+		return -1;
+	}
+
+
+	char files [superBlock.numberINodes];
+	index = superBlock.numberINodes-1;
+	for (i = 0 ; remain > 1 ; i++){
+		files[index] = remain % 2;
+		remain = remain / 2;
+		index--;
+	}
+
+	for (i = 0 ; i < superBlock.numberINodes ; i++){
+		if (files[i] == 1){
+			files[i] = inodes[i];
+		}
+	}
 
 	return 0;
 }
