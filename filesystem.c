@@ -17,14 +17,14 @@ typedef struct tag {
 
 typedef struct inode {
 	char name [64];
-	unsigned short filePointer;
+	unsigned short filePointer;																										// TODO: ¿2 punteros diferentes para leer / escribir?
 	unsigned short size;
 	unsigned char open;
 	char tags [3];
 
 } inode;
 
-typedef struct sblock {																													// TODO: Campo para verificar si el sistema está montado?
+typedef struct sblock {																													// TODO: ¿Campo para verificar si el sistema está montado?
 	struct tag tagsMap [30];
 	unsigned char numberINodes;
 	unsigned char firstDataBlock;
@@ -66,7 +66,7 @@ int mkFS (int maxNumFiles, long deviceSize) {
 	}
 
 	superBlock.numberINodes = 0;
-	superBlock.firstDataBlock = ceil(inodesSize / 4096) + 1;
+	superBlock.firstDataBlock = 2;
 	superBlock.maximumFiles = (unsigned char) maxNumFiles;
 
 	// Initializing all the inodes structures to their default values
@@ -248,13 +248,13 @@ int readFS (int fileDescriptor, void *buffer, int numBytes) {
 	int index = fileDescriptor - superBlock.firstDataBlock;
 	int offset = inodes[index].filePointer;
 
-	// Checking if the file is open
-	if (inodes[index].open == 0){
+	// Checking if the number of bytes is valid
+	if (numBytes < 0){
 		return -1;
 	}
 
-	// Checking if the number of bytes is valid
-	if (numBytes < 0 || numBytes > inodes[index].size){
+	// Checking if the file is open
+	if (inodes[index].open == 0){
 		return -1;
 	}
 
@@ -295,13 +295,13 @@ int writeFS (int fileDescriptor, void *buffer, int numBytes) {
 	int index = fileDescriptor - superBlock.firstDataBlock;
 	int offset = inodes[index].filePointer;
 
-	// Checking if the file is open
-	if (inodes[index].open == 0){
+	// Checking if the number of bytes is valid
+	if (numBytes < 0 || (offset + numBytes) > MAX_FILE_SIZE){
 		return -1;
 	}
 
-	// Checking if the number of bytes is valid
-	if (numBytes < 0 || (offset + numBytes) > MAX_FILE_SIZE){
+	// Checking if the file is open
+	if (inodes[index].open == 0){
 		return -1;
 	}
 
@@ -338,17 +338,17 @@ int lseekFS (int fileDescriptor, long offset, int whence) {
 	// Obtaining data block "offset"
 	int index = fileDescriptor - superBlock.firstDataBlock;
 
-	// Checking if the offset in a valid number
-	if (offset < 0 || offset > inodes[index].size){
+	// Checking if the file is open
+	if (inodes[index].open == 0){
 		return -1;
 	}
 
 	// Taking different actions depending on the "whence" value
-	if (whence == FS_SEEK_SET){
+	if (whence == FS_SEEK_SET && offset > 0 && offset < inodes[index].size){			// TODO: ¿Los ficheros empiezan en 0 o en 1?
 		inodes[index].filePointer = offset;
 	}
 	else if (whence == FS_SEEK_BEGIN){
-		inodes[index].filePointer = 0;
+		inodes[index].filePointer = 0;																							// TODO: ¿Los ficheros empiezan en 0 o en 1?
 	}
 	else if (whence == FS_SEEK_END){
 		inodes[index].filePointer = inodes[index].size;
