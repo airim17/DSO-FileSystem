@@ -9,8 +9,8 @@
 
 /* Types of structs */
 typedef struct tag {
-	unsigned char ID;
 	char name [32];
+	unsigned char ID;
 	unsigned char counter;
 	unsigned long files;
 
@@ -267,13 +267,13 @@ int readFS(int fileDescriptor, void *buffer, int numBytes) {
 
 	// If the number of bytes to read is higher than the number of remaining ones
 	if (offset + numBytes > inodes[fileDescriptor-boffset].size){
-			memcpy(buffer, &(block[offset]), inodes[fileDescriptor-boffset].size - offset);	// TODO: Hay que poner "&"?
+			memcpy(buffer, &(block[offset]), inodes[fileDescriptor-boffset].size - offset);
 			inodes[fileDescriptor-boffset].filePointer = inodes[fileDescriptor-boffset].size;
 			return inodes[fileDescriptor-boffset].size - offset;
 	}
 
 	// If it is the common behaviour
-	memcpy(buffer, &(block[offset]), numBytes);																		// TODO: Hay que poner "&"?
+	memcpy(buffer, &(block[offset]), numBytes);
 	inodes[fileDescriptor-boffset].filePointer = offset + numBytes;
 	return numBytes;
 }
@@ -309,7 +309,7 @@ int writeFS(int fileDescriptor, void *buffer, int numBytes) {
 		return -1;
 	}
 
-	memcpy(&(buffer[offset]), block, numBytes);																		// TODO REVISAR "&" en block??
+	memcpy(&(buffer[offset]), block, numBytes);
 
 	inodes[fileDescriptor-boffset].filePointer = offset + numBytes;
 	if (offset + numBytes > inodes[fileDescriptor-boffset].size){
