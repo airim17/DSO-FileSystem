@@ -10,7 +10,7 @@
 /* Types of structs */
 typedef struct tag {
 	char name [32];
-	unsigned char ID;
+	char ID;
 	unsigned char counter;
 	unsigned long files;
 
@@ -21,7 +21,7 @@ typedef struct inode {
 	unsigned short filePointer;
 	unsigned short size;
 	unsigned char open;
-	unsigned char tags [3];
+	char tags [3];
 
 } inode;
 
@@ -79,9 +79,9 @@ int mkFS(int maxNumFiles, long deviceSize) {
 		inodes[i].filePointer = 0;
 		inodes[i].size = 0;
 		inodes[i].open = 0;
-		inodes[i].tags[0] = 0;
-		inodes[i].tags[1] = 0;
-		inodes[i].tags[2] = 0;
+		inodes[i].tags[0] = -1;
+		inodes[i].tags[1] = -1;
+		inodes[i].tags[2] = -1;
 	}
 
 	char block[BLOCK_SIZE];
@@ -209,8 +209,7 @@ int openFS(char *fileName) {
 
 	int i;
 	for (i = 0 ; i < superBlock.numberINodes ; i++){
-
-		if (inodes[i].name == fileName){
+		if (strcmp(inodes[i].name, fileName) == 0){
 			inodes[i].open = 1;
 			inodes[i].filePointer = 0;
 			return (superBlock.firstDataBlock + i);
@@ -225,7 +224,6 @@ int openFS(char *fileName) {
  * Returns 0 if the operation was correct or -1 in case of error.
  */
 int closeFS(int fileDescriptor) {
-
 
 	if (fileDescriptor > superBlock.numberINodes + superBlock.firstDataBlock){
 		return -1;
@@ -253,7 +251,6 @@ int readFS(int fileDescriptor, void *buffer, int numBytes) {
 	// Checking if the number of bytes is valid
 	int boffset = superBlock.firstDataBlock;
 	int offset = inodes[fileDescriptor-boffset].filePointer;
-
 
 	if (numBytes < 0 || numBytes > inodes[fileDescriptor-boffset].size){
 		return -1;
@@ -294,13 +291,8 @@ int writeFS(int fileDescriptor, void *buffer, int numBytes) {
 	int boffset = superBlock.firstDataBlock;
 	int offset = inodes[fileDescriptor-boffset].filePointer;
 
-	if (numBytes < 0 || (offset + numBytes) > MAX_FILE_SIZE){
+	if (numBytes < 0 || offset == MAX_FILE_SIZE || (offset + numBytes) > MAX_FILE_SIZE){
 		return -1;
-	}
-
-	// Checking if the filepointer is just at the end
-	if (offset == inodes[fileDescriptor-boffset].size){
-		return 0;
 	}
 
 	// Writting data into the disk
@@ -363,7 +355,7 @@ int tagFS(char *fileName, char *tagName) {
 
 	int i, fileExist = 0, numINode;
 	for (i = 0 ; i < superBlock.numberINodes ; i++){
-		if (inodes[i].name == fileName){
+		if (strcmp(inodes[i].name, fileName) == 0){
 			fileExist = 1;
 			numINode = i;
 		}
@@ -381,7 +373,7 @@ int tagFS(char *fileName, char *tagName) {
 
 	for (i = 0 ; i < 30 ; i++){
 
-		if (strcmp(superBlock.tagsMap[i].name, tagName)){
+		if (strcmp(superBlock.tagsMap[i].name, tagName) == 0){
 
 			for (j = 0 ; j < 3 ; j++){
 				if (inodes[numINode].tags[j] == 0){
@@ -412,10 +404,10 @@ int tagFS(char *fileName, char *tagName) {
 
 		for (i = 0 ; i < 30 ; i++){
 
-			if (strcmp (superBlock.tagsMap[i].name, "FREE") && superBlock.tagsMap[i].counter == 0){
+			if (strcmp(superBlock.tagsMap[i].name, "FREE") == 0 && superBlock.tagsMap[i].counter == 0){
 
 				for (j = 0 ; j < 3 ; j++){
-					if (inodes[numINode].tags[j] == 0){
+					if (inodes[numINode].tags[j] == -1){
 						tagSpace = j;
 					}
 					if (inodes[numINode].tags[j] == i){
@@ -431,15 +423,13 @@ int tagFS(char *fileName, char *tagName) {
 				}
 
 				inodes[numINode].tags[tagSpace] = i;
-				superBlock.tagsMap[i].ID = i+1;
+				superBlock.tagsMap[i].ID = i;
 				strncpy(superBlock.tagsMap[i].name, tagName, 32);
 				superBlock.tagsMap[i].counter = 1;
 				superBlock.tagsMap[i].files = superBlock.tagsMap[i].files + pow(2, numINode);
 			}
 		}
 	}
-
-
 
 	return 0;
 }
@@ -471,7 +461,7 @@ int untagFS(char *fileName, char *tagName) {
 
 	for (i = 0 ; i < 30 ; i++){
 
-		if (strcmp(superBlock.tagsMap[i].name, tagName)){
+		if (strcmp(superBlock.tagsMap[i].name, tagName) == 0){
 
 			int j, tagFound = 0;
 			for (j = 0 ; j < 3 ; j++){
@@ -509,14 +499,14 @@ int untagFS(char *fileName, char *tagName) {
  */
 int listFS(char *tagName, char **files) {
 
-	if (sizeof(tagName) > 32){
+	if (sizeof(tagName) < 1 || sizeof(tagName) > 32){
 		return -1;
 	}
 
 	// If there is already a tag with that name: its counter is decrease
 	int i, found = 0, remain;
 	for (i = 0 ; i < 30 ; i++){
-		if (superBlock.tagsMap[i].name == tagName){
+		if (strcmp(superBlock.tagsMap[i].name, tagName) == 0){
 			remain = superBlock.tagsMap[i].files;
 			found = 1;
 		}
