@@ -169,7 +169,7 @@ int creatFS(char *fileName) {
 	}
 
 	// Checking if the file name has the proper length
-	if (sizeof(fileName) < 1 || sizeof(fileName) > 64){
+	if (strlen(fileName) < 1 || strlen(fileName) > 64){
 		return -1;
 	}
 
@@ -192,13 +192,19 @@ int creatFS(char *fileName) {
 int openFS (char *fileName) {
 
 	// Checking if the file name has the proper length
-	if (sizeof(fileName) < 1 || sizeof(fileName) > 64){
-		return -1;
+	if (strlen(fileName) < 1 || strlen(fileName) > 64){
+		return -2;
 	}
 
 	int i;
 	for (i = 0 ; i < superBlock.numberINodes ; i++){
 		if (strcmp(inodes[i].name, fileName) == 0){
+
+			// Checking if the file was already open
+			if (inodes[i].open == 1){
+				return -2;
+			}
+
 			inodes[i].open = 1;
 			inodes[i].filePointer = 0;
 			return (i + superBlock.firstDataBlock);
@@ -217,12 +223,16 @@ int closeFS (int fileDescriptor) {
 		return -1;
 	}
 
-	if (inodes[fileDescriptor-superBlock.firstDataBlock].open == 1){
-		inodes[fileDescriptor-superBlock.firstDataBlock].open = 0;
-		return 0;
+	// Obtaining data block "offset"
+	int index = fileDescriptor - superBlock.firstDataBlock;
+
+	// Checking if the file was already closed
+	if (inodes[index].open == 0){
+		return -1;
 	}
 
-	return -1;
+	inodes[index].open = 0;
+	return 0;
 }
 
 
@@ -359,12 +369,12 @@ int lseekFS (int fileDescriptor, long offset, int whence) {
 int tagFS (char *fileName, char *tagName) {
 
 	// Checking if the file name has the proper length
-	if (sizeof(fileName) < 1 || sizeof(fileName) > 64){
+	if (strlen(fileName) < 1 || strlen(fileName) > 64){
 		return -1;
 	}
 
 	// Checking if the tag name has the proper length
-	if (sizeof(tagName) < 1 || sizeof(tagName) > 32){
+	if (strlen(tagName) < 1 || strlen(tagName) > 32){
 		return -1;
 	}
 
@@ -463,12 +473,12 @@ int tagFS (char *fileName, char *tagName) {
 int untagFS (char *fileName, char *tagName) {
 
 	// Checking if the file name has the proper length
-	if (sizeof(fileName) < 1 || sizeof(fileName) > 64){
+	if (strlen(fileName) < 1 || strlen(fileName) > 64){
 		return -1;
 	}
 
 	// Checking if the tag name has the proper length
-	if (sizeof(tagName) < 1 || sizeof(tagName) > 32){
+	if (strlen(tagName) < 1 || strlen(tagName) > 32){
 		return -1;
 	}
 
@@ -533,7 +543,7 @@ int untagFS (char *fileName, char *tagName) {
 int listFS (char *tagName, char **files) {
 
 	// Checking if the tag name has the proper length
-	if (sizeof(tagName) < 1 || sizeof(tagName) > 32){
+	if (strlen(tagName) < 1 || strlen(tagName) > 32){
 		return -1;
 	}
 
