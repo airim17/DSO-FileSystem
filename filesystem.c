@@ -24,7 +24,7 @@ typedef struct inode {
 
 } inode;
 
-typedef struct sblock {
+typedef struct sblock {																													// TODO: Campo para verificar si el sistema está montado?
 	struct tag tagsMap [30];
 	unsigned char numberINodes;
 	unsigned char firstDataBlock;
@@ -244,14 +244,14 @@ int readFS (int fileDescriptor, void *buffer, int numBytes) {
 		return -1;
 	}
 
-	// Checking if the file is open
-	if (inodes[fileDescriptor-superBlock.firstDataBlock].open == 0){
-		return -1;
-	}
-
 	// Obtaining data block "offset" and file offset
 	int index = fileDescriptor - superBlock.firstDataBlock;
 	int offset = inodes[index].filePointer;
+
+	// Checking if the file is open
+	if (inodes[index].open == 0){
+		return -1;
+	}
 
 	// Checking if the number of bytes is valid
 	if (numBytes < 0 || numBytes > inodes[index].size){
@@ -291,14 +291,14 @@ int writeFS (int fileDescriptor, void *buffer, int numBytes) {
 		return -1;
 	}
 
-	// Checking if the file is open
-	if (inodes[fileDescriptor-1].open == 0){
-		return -1;
-	}
-
 	// Obtaining data block "offset" and file offset
 	int index = fileDescriptor - superBlock.firstDataBlock;
 	int offset = inodes[index].filePointer;
+
+	// Checking if the file is open
+	if (inodes[index].open == 0){
+		return -1;
+	}
 
 	// Checking if the number of bytes is valid
 	if (numBytes < 0 || (offset + numBytes) > MAX_FILE_SIZE){
