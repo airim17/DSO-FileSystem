@@ -12,7 +12,7 @@ typedef struct tag {
 	unsigned char ID;
 	char name [32];
 	unsigned char counter;
-	unsigned char files;
+	unsigned long files;
 
 } tag;
 
@@ -20,7 +20,6 @@ typedef struct inode {
 	char name [64];
 	unsigned short filePointer;
 	unsigned short size;
-	unsigned char directBlock;
 	unsigned char open;
 	unsigned char tags [3];
 
@@ -61,23 +60,46 @@ int mkFS(int maxNumFiles, long deviceSize) {
 		return -1;
 	}
 
-	// Formating the device writting zeroes
-	char zero [BLOCK_SIZE];
-	memset(zero, '0', BLOCK_SIZE);
-
 	int i;
-	for (i = 0 ; i < ceil(deviceSize / BLOCK_SIZE) ; i++){
-		if (bwrite(DEVICE_IMAGE, i, zero) == -1){
-			return -1;
-		}
+	for (i = 0; i < 30 ; i++){
+		superBlock.tagsMap[i].ID = 0;
+		strncpy(superBlock.tagsMap[i].name, "FREE", 32);
+		superBlock.tagsMap[i].counter = 0;
+		superBlock.tagsMap[i].files = 0;
 	}
 
-
-	// Initializing some fields of the superBlock 																// TODO REVISAR
+	superBlock.numberINodes = 0;
 	superBlock.firstDataBlock = ceil((maxNumFiles * sizeof(struct inode)) / 4096) + 1;
 	superBlock.maximumFiles = (unsigned char) maxNumFiles;
 	superBlock.deviceSize = (int) deviceSize;
 	superBlock.magicNumber = (int) 317201;
+
+	for (i = 0; i < 50 ; i++){
+		strncpy(inodes[i].name, "", 64);
+		inodes[i].filePointer = 0;
+		inodes[i].size = 0;
+		inodes[i].open = 0;
+		inodes[i].tags[0] = 0;
+		inodes[i].tags[1] = 0;
+		inodes[i].tags[2] = 0;
+	}
+
+	char block[BLOCK_SIZE];
+	memset(block, '0', BLOCK_SIZE);
+	memcpy(block, &superBlock, sizeof(block));
+
+	// Writting the superBlock into the first block
+	if (bwrite(DEVICE_IMAGE, 0, block) == -1){
+		return -1;
+	}
+
+	memset(block, '0', BLOCK_SIZE);
+	memcpy(block, &inodes, sizeof(inode) * 50);
+
+	// Writting the array of i-nodes into the second block
+	if (bwrite(DEVICE_IMAGE, 1, block) == -1){
+		return -1;
+	}
 
 	return 0;
 }
@@ -159,7 +181,7 @@ int creatFS(char *fileName) {
 	}
 
 	// Checking if the inode name has the proper lenght
-	if (sizeof(fileName) > 64){
+	if (sizeof(fileName) < 1 || sizeof(fileName) > 64){
 		return -1;
 	}
 
@@ -174,7 +196,6 @@ int creatFS(char *fileName) {
 	// Updating the information of the superBlock and the inode
 	superBlock.numberINodes = superBlock.numberINodes + 1;
 	strncpy(inodes[superBlock.numberINodes-1].name, fileName, 64);
-	inodes[superBlock.numberINodes-1].directBlock = superBlock.numberINodes+1;
 
 	return 0;
 }
@@ -192,7 +213,7 @@ int openFS(char *fileName) {
 		if (inodes[i].name == fileName){
 			inodes[i].open = 1;
 			inodes[i].filePointer = 0;
-			return inodes[i].directBlock;
+			return (superBlock.firstDataBlock + i);
 		}
 	}
 
@@ -205,8 +226,13 @@ int openFS(char *fileName) {
  */
 int closeFS(int fileDescriptor) {
 
-	if (inodes[fileDescriptor-2].open == 1){
-		inodes[fileDescriptor-2].open = 0;
+
+	if (fileDescriptor > superBlock.numberINodes + superBlock.firstDataBlock){
+		return -1;
+	}
+
+	if (inodes[fileDescriptor-superBlock.firstDataBlock].open == 1){
+		inodes[fileDescriptor-superBlock.firstDataBlock].open = 0;
 		return 0;
 	}
 
@@ -220,13 +246,16 @@ int closeFS(int fileDescriptor) {
 int readFS(int fileDescriptor, void *buffer, int numBytes) {
 
 	// Checking if the file is open
-	if (inodes[fileDescriptor-2].open == 0){
+	if (inodes[fileDescriptor-superBlock.firstDataBlock].open == 0){
 		return -1;
 	}
 
 	// Checking if the number of bytes is valid
-	int offset = inodes[fileDescriptor-2].filePointer;
-	if (numBytes < 0 || numBytes > MAX_FILE_SIZE){
+	int boffset = superBlock.firstDataBlock;
+	int offset = inodes[fileDescriptor-boffset].filePointer;
+
+
+	if (numBytes < 0 || numBytes > inodes[fileDescriptor-boffset].size){
 		return -1;
 	}
 
@@ -237,15 +266,15 @@ int readFS(int fileDescriptor, void *buffer, int numBytes) {
 	}
 
 	// If the number of bytes to read is higher than the number of remaining ones
-	if (offset + numBytes > inodes[fileDescriptor-2].size){
-			memcpy(buffer, &(block[offset]), inodes[fileDescriptor-2].size - offset);
-			inodes[fileDescriptor-2].filePointer = inodes[fileDescriptor-2].size;
-			return inodes[fileDescriptor-2].size - offset;
+	if (offset + numBytes > inodes[fileDescriptor-boffset].size){
+			memcpy(buffer, &(block[offset]), inodes[fileDescriptor-boffset].size - offset);	// TODO: Hay que poner "&"?
+			inodes[fileDescriptor-boffset].filePointer = inodes[fileDescriptor-boffset].size;
+			return inodes[fileDescriptor-boffset].size - offset;
 	}
 
 	// If it is the common behaviour
-	memcpy(buffer, &(block[offset]), numBytes);																		// TODO REVISAR
-	inodes[fileDescriptor-2].filePointer = offset + numBytes;
+	memcpy(buffer, &(block[offset]), numBytes);																		// TODO: Hay que poner "&"?
+	inodes[fileDescriptor-boffset].filePointer = offset + numBytes;
 	return numBytes;
 }
 
@@ -262,13 +291,15 @@ int writeFS(int fileDescriptor, void *buffer, int numBytes) {
 	}
 
 	// Checking if the number of bytes is valid
-	int offset = inodes[fileDescriptor-2].filePointer;
+	int boffset = superBlock.firstDataBlock;
+	int offset = inodes[fileDescriptor-boffset].filePointer;
+
 	if (numBytes < 0 || (offset + numBytes) > MAX_FILE_SIZE){
 		return -1;
 	}
 
 	// Checking if the filepointer is just at the end
-	if (offset == MAX_FILE_SIZE){
+	if (offset == inodes[fileDescriptor-boffset].size){
 		return 0;
 	}
 
@@ -278,10 +309,11 @@ int writeFS(int fileDescriptor, void *buffer, int numBytes) {
 		return -1;
 	}
 
-	memcpy(&(buffer[offset]), block, numBytes);																		// TODO REVISAR
-	inodes[fileDescriptor-2].filePointer = offset + numBytes;
-	if (offset + numBytes > inodes[fileDescriptor-2].size){
-		inodes[fileDescriptor-2].size = offset + numBytes;
+	memcpy(&(buffer[offset]), block, numBytes);																		// TODO REVISAR "&" en block??
+
+	inodes[fileDescriptor-boffset].filePointer = offset + numBytes;
+	if (offset + numBytes > inodes[fileDescriptor-boffset].size){
+		inodes[fileDescriptor-boffset].size = offset + numBytes;
 	}
 
 	return numBytes;
@@ -295,18 +327,21 @@ int writeFS(int fileDescriptor, void *buffer, int numBytes) {
  */
 int lseekFS(int fileDescriptor, long offset, int whence) {
 
-	if (offset < 0 || offset > inodes[fileDescriptor-2].size){
+	// Checking if the number of bytes is valid
+	int boffset = superBlock.firstDataBlock;
+
+	if (offset < 0 || offset > inodes[fileDescriptor-boffset].size){
 		return -1;
 	}
 
 	if (whence == 0){
-		inodes[fileDescriptor-2].filePointer = offset;
+		inodes[fileDescriptor-boffset].filePointer = offset;
 	}
 	else if (whence == 1){
-		inodes[fileDescriptor-2].filePointer = 0;
+		inodes[fileDescriptor-boffset].filePointer = 0;
 	}
-	else if (whence == 2){
-		inodes[fileDescriptor-2].filePointer = MAX_FILE_SIZE;
+	else if (whence == boffset){
+		inodes[fileDescriptor-boffset].filePointer = inodes[fileDescriptor-boffset].size;
 	}
 
 	return offset;
@@ -339,49 +374,72 @@ int tagFS(char *fileName, char *tagName) {
 	}
 
 	// If there is already a tag with that name: its counter is increase
-	int tagID = 0;
 	int found = 0;
+	int tagSpace = -1;
+	int error = 0;
+	int j;
+
 	for (i = 0 ; i < 30 ; i++){
+
 		if (strcmp(superBlock.tagsMap[i].name, tagName)){
+
+			for (j = 0 ; j < 3 ; j++){
+				if (inodes[numINode].tags[j] == 0){
+					tagSpace = j;
+				}
+				if (inodes[numINode].tags[j] == i){
+					error = 1;
+				}
+			}
+
+			if (error == 1){
+				return 1;
+			}
+
+			else if (tagSpace == -1){
+				return -1;
+			}
+
+			inodes[numINode].tags[tagSpace] = i;
 			superBlock.tagsMap[i].counter = superBlock.tagsMap[i].counter + 1;
 			superBlock.tagsMap[i].files = superBlock.tagsMap[i].files + pow(2, numINode);
 			found = 1;
-			tagID = i;
 		}
 	}
 
 	// If there is not any tag with that name: is created
 	if (found == 0){
+
 		for (i = 0 ; i < 30 ; i++){
+
 			if (strcmp (superBlock.tagsMap[i].name, "FREE") && superBlock.tagsMap[i].counter == 0){
+
+				for (j = 0 ; j < 3 ; j++){
+					if (inodes[numINode].tags[j] == 0){
+						tagSpace = j;
+					}
+					if (inodes[numINode].tags[j] == i){
+						error = 1;
+					}
+				}
+
+				if (error == 1){
+					return 1;
+				}
+				else if (tagSpace == -1){
+					return -1;
+				}
+
+				inodes[numINode].tags[tagSpace] = i;
 				superBlock.tagsMap[i].ID = i+1;
 				strncpy(superBlock.tagsMap[i].name, tagName, 32);
 				superBlock.tagsMap[i].counter = 1;
 				superBlock.tagsMap[i].files = superBlock.tagsMap[i].files + pow(2, numINode);
-				tagID = i;
 			}
 		}
 	}
 
-	int tagSpace = -1, error = 0;
-	for (i = 0 ; i < 3 ; i++){
-		if (inodes[numINode].tags[i] == 0){
-			tagSpace = i;
-		}
-		if (inodes[numINode].tags[i] == tagID){
-			error = 1;
-		}
-	}
 
-	if (error == 1){
-		return 1;
-	}
-	else if (tagSpace == -1){
-		return -1;
-	}
-	else {
-		inodes[numINode].tags[tagSpace] = tagID;
-	}
 
 	return 0;
 }
@@ -408,35 +466,36 @@ int untagFS(char *fileName, char *tagName) {
 		return -1;
 	}
 
-	int tagID = 0;
 	// If there is already a tag with that name: its counter is decrease
 	int found = 0;
+
 	for (i = 0 ; i < 30 ; i++){
+
 		if (strcmp(superBlock.tagsMap[i].name, tagName)){
+
+			int j, tagFound = 0;
+			for (j = 0 ; j < 3 ; j++){
+				if (inodes[numINode].tags[j] == i){
+					inodes[numINode].tags[j] = 0;
+					tagFound = 1;
+				}
+			}
+
+			if (tagFound == 0){
+				return -1;
+			}
+
 			superBlock.tagsMap[i].counter = superBlock.tagsMap[i].counter - 1;
 			superBlock.tagsMap[i].files = superBlock.tagsMap[i].files - pow(2, numINode);
 			if (superBlock.tagsMap[i].counter == 0){
-				strncpy(superBlock.tagsMap[i].name, "FREE", 32);												// TODO ¿Qué se considera eliminar?
+				strncpy(superBlock.tagsMap[i].name, "FREE", 32);
 			}
 			found = 1;
-			tagID = i;
 		}
 	}
 
 	// If there is not a tag with that name: error
 	if (found == 0){
-		return -1;
-	}
-
-	int tagFound = 0;
-	for (i = 0 ; i < 3 ; i++){
-		if (inodes[numINode].tags[i] == tagID){
-			inodes[numINode].tags[i] = 0;
-			tagFound = 1;
-		}
-	}
-
-	if (tagFound == 0){
 		return -1;
 	}
 
