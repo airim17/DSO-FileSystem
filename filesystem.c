@@ -34,7 +34,10 @@ typedef struct sblock {
 
 /* Global variables */
 sblock superBlock;
-inode inodes[50];																																// TODO: inode inodes;
+inode inodes[50];
+
+int sblockSize = sizeof(superBlock);
+int inodesSize = sizeof(inode) * 50;
 
 
 /***************************/
@@ -63,11 +66,11 @@ int mkFS (int maxNumFiles, long deviceSize) {
 	}
 
 	superBlock.numberINodes = 0;
-	superBlock.firstDataBlock = ceil((maxNumFiles * sizeof(inode)) / 4096) + 1;
+	superBlock.firstDataBlock = ceil(inodesSize / 4096) + 1;
 	superBlock.maximumFiles = (unsigned char) maxNumFiles;
 
-	// Initializing all the inodes structures to their default values							// TODO: inodes = [maxNumFiles];
-	for (i = 0; i < 50 ; i++){																										// TODO: i < maxNumFiles
+	// Initializing all the inodes structures to their default values
+	for (i = 0; i < 50 ; i++){
 		strncpy(inodes[i].name, "", 64);
 		inodes[i].filePointer = 0;
 		inodes[i].size = 0;
@@ -80,7 +83,7 @@ int mkFS (int maxNumFiles, long deviceSize) {
 
 	char block[BLOCK_SIZE];
 	memset(block, '0', BLOCK_SIZE);
-	memcpy(block, &superBlock, sizeof(block));
+	memcpy(block, &superBlock, sblockSize);
 
 	// Writting the superblock information into the first block of the disk
 	if (bwrite(DEVICE_IMAGE, 0, block) == -1){
@@ -88,7 +91,7 @@ int mkFS (int maxNumFiles, long deviceSize) {
 	}
 
 	memset(block, '0', BLOCK_SIZE);
-	memcpy(block, inodes, sizeof(inode) * 50);																		// TODO: sizeof(inode) * maxNumFiles
+	memcpy(block, inodes, inodesSize);
 
 	// Writting the inodes information into the second block of the disk
 	if (bwrite(DEVICE_IMAGE, 1, block) == -1){
@@ -109,14 +112,14 @@ int mountFS () {
 		return -1;
 	}
 
-	memcpy(&superBlock, block, sizeof(superBlock));
+	memcpy(&superBlock, block, sblockSize);
 
 	// Checking if reading the i-nodes produces any error
 	if (bread(DEVICE_IMAGE, 1, block) == -1){
 		return -1;
 	}
 
-	memcpy(inodes, block, sizeof(inode) * 50);																		// TODO: sizeof(inodes)
+	memcpy(inodes, block, inodesSize);
 	return 0;
 }
 
@@ -134,7 +137,7 @@ int umountFS () {
 
 	char block[BLOCK_SIZE];
 	memset(block, '0', BLOCK_SIZE);
-	memcpy(block, &superBlock, sizeof(superBlock));
+	memcpy(block, &superBlock, sblockSize);
 
 	// Writting the superBlock into the first block
 	if (bwrite(DEVICE_IMAGE, 0, block) == -1){
@@ -142,7 +145,7 @@ int umountFS () {
 	}
 
 	memset(block, '0', BLOCK_SIZE);
-	memcpy(block, &inodes, sizeof(inode) * 50);																		// TODO: sizeof(inodes)
+	memcpy(block, &inodes, inodesSize);
 
 	// Writting the array of i-nodes into the second block
 	if (bwrite(DEVICE_IMAGE, 1, block) == -1){
@@ -150,7 +153,6 @@ int umountFS () {
 	}
 
 	return 0;
-
 }
 
 
@@ -294,7 +296,7 @@ int writeFS (int fileDescriptor, void *buffer, int numBytes) {
 	}
 
 	// Checking if there is no byte left to be read
-	if (inodes[index].filePointer == inodes[index].size){
+	if (inodes[index].filePointer == MAX_FILE_SIZE){
 		return 0;
 	}
 
