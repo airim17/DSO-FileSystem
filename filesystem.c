@@ -11,13 +11,13 @@
 typedef struct tag {
 	unsigned char ID;
 	char name [32];
-	unsigned char repetitions;
+	unsigned char counter;
 	unsigned char files;
 
 } tag;
 
 typedef struct inode {
-	char name [64] = "NULL";
+	char name [64];
 	unsigned short filePointer;
 	unsigned short size;
 	unsigned char directBlock;
@@ -28,7 +28,6 @@ typedef struct inode {
 
 typedef struct sblock {
 	struct tag tagsMap [30];
-	unsigned char inodeSize;
 	unsigned char numberINodes;
 	unsigned char firstDataBlock;
 	unsigned char maximumFiles;
@@ -75,7 +74,6 @@ int mkFS(int maxNumFiles, long deviceSize) {
 
 
 	// Initializing some fields of the superBlock 																// TODO REVISAR
-	superBlock.inodeSize = sizeof (struct inode);
 	superBlock.firstDataBlock = ceil((maxNumFiles * sizeof(struct inode)) / 4096) + 1;
 	superBlock.maximumFiles = (unsigned char) maxNumFiles;
 	superBlock.deviceSize = (int) deviceSize;
@@ -97,7 +95,7 @@ int mountFS() {
 		return -1;
 	}
 
-	memcpy(&superBlock, block, sizeof(block));
+	memcpy(&superBlock, block, sizeof(superBlock));
 
 	// Checking if reading the superblock produces any error
 	if (bread(DEVICE_IMAGE, 1, block) == -1){
@@ -105,7 +103,7 @@ int mountFS() {
 	}
 
 	memcpy(&inodes, block, sizeof(inode) * 50);
-
+	return 0;
 }
 
 /*
@@ -175,7 +173,7 @@ int creatFS(char *fileName) {
 
 	// Updating the information of the superBlock and the inode
 	superBlock.numberINodes = superBlock.numberINodes + 1;
-	inodes[superBlock.numberINodes-1].name = fileName; 														// TODO REVISAR
+	strncpy(inodes[superBlock.numberINodes-1].name, fileName, 64);
 	inodes[superBlock.numberINodes-1].directBlock = superBlock.numberINodes+1;
 
 	return 0;
@@ -237,7 +235,15 @@ int readFS(int fileDescriptor, void *buffer, int numBytes) {
 	if (bread(DEVICE_IMAGE, fileDescriptor, block) == -1){
 		return -1;
 	}
-																																								// TODO Que se pueda leer hasta donde se pueda
+
+	// If the number of bytes to read is higher than the number of remaining ones
+	if (offset + numBytes > inodes[fileDescriptor-2].size){
+			memcpy(buffer, &(block[offset]), inodes[fileDescriptor-2].size - offset);
+			inodes[fileDescriptor-2].filePointer = inodes[fileDescriptor-2].size;
+			return inodes[fileDescriptor-2].size - offset;
+	}
+
+	// If it is the common behaviour
 	memcpy(buffer, &(block[offset]), numBytes);																		// TODO REVISAR
 	inodes[fileDescriptor-2].filePointer = offset + numBytes;
 	return numBytes;
@@ -262,7 +268,7 @@ int writeFS(int fileDescriptor, void *buffer, int numBytes) {
 	}
 
 	// Checking if the filepointer is just at the end
-	if (offser == MAX_FILE_SIZE){
+	if (offset == MAX_FILE_SIZE){
 		return 0;
 	}
 
@@ -326,19 +332,19 @@ int tagFS(char *fileName, char *tagName) {
 			fileExist = 1;
 			numINode = i;
 		}
+	}
 
-	if (fileExiste = 0){
+	if (fileExist == 0){
 		return -1;
 	}
 
-
-	int tagID = 0;
 	// If there is already a tag with that name: its counter is increase
-	int i, found = 0;
+	int tagID = 0;
+	int found = 0;
 	for (i = 0 ; i < 30 ; i++){
-		if (superBlock.tagsMap[i].name == tagName){
-			superBlock.tagsMap[i].repetitions = superBlock.tagsMap[i].repetitions + 1;
-																																								// TODO Actualizar el número con lo de potencias de 2
+		if (strcmp(superBlock.tagsMap[i].name, tagName)){
+			superBlock.tagsMap[i].counter = superBlock.tagsMap[i].counter + 1;
+			superBlock.tagsMap[i].files = superBlock.tagsMap[i].files + pow(2, numINode);
 			found = 1;
 			tagID = i;
 		}
@@ -347,29 +353,34 @@ int tagFS(char *fileName, char *tagName) {
 	// If there is not any tag with that name: is created
 	if (found == 0){
 		for (i = 0 ; i < 30 ; i++){
-			if (superBlock.tagsMap[i].name == "NULL"){
-				superBlock.tagsMap[i].ID = i;
-				superBlock.tagsMap[i].name = tagName;
-				superBlock.tagsMap[i].repetitions = 1;
-																																								// TODO Actualizar el número con lo de potencias de 2
+			if (strcmp (superBlock.tagsMap[i].name, "FREE") && superBlock.tagsMap[i].counter == 0){
+				superBlock.tagsMap[i].ID = i+1;
+				strncpy(superBlock.tagsMap[i].name, tagName, 32);
+				superBlock.tagsMap[i].counter = 1;
+				superBlock.tagsMap[i].files = superBlock.tagsMap[i].files + pow(2, numINode);
 				tagID = i;
 			}
 		}
 	}
 
-	tagSpace = 0;
+	int tagSpace = -1, error = 0;
 	for (i = 0 ; i < 3 ; i++){
-		if (inodes[numINode].tags[i] == "NULL"){
-			inodes[numINode].tags[i] = tagID;
-			tagSpace = 1;
+		if (inodes[numINode].tags[i] == 0){
+			tagSpace = i;
 		}
-		if (inodes[numINode].tags[i] == tagName){
-			return 1;
+		if (inodes[numINode].tags[i] == tagID){
+			error = 1;
 		}
 	}
 
-	if (tagSpace = 0){
+	if (error == 1){
+		return 1;
+	}
+	else if (tagSpace == -1){
 		return -1;
+	}
+	else {
+		inodes[numINode].tags[tagSpace] = tagID;
 	}
 
 	return 0;
@@ -385,17 +396,30 @@ int untagFS(char *fileName, char *tagName) {
 		return -1;
 	}
 
+	int fileExist = 0, numINode, i;
+	for (i = 0 ; i < superBlock.numberINodes ; i++){
+		if (inodes[i].name == fileName){
+			fileExist = 1;
+			numINode = i;
+		}
+	}
+
+	if (fileExist == 0){
+		return -1;
+	}
+
 	int tagID = 0;
 	// If there is already a tag with that name: its counter is decrease
-	int i, found = 0;
+	int found = 0;
 	for (i = 0 ; i < 30 ; i++){
-		if (superBlock.tagsMap[i].name == tagName){
-			superBlock.tagsMap[i].repetitions = superBlock.tagsMap[i].repetitions - 1;
-																																								// TODO Actualizar el número con lo de potencias de 2
-			if (superBlock.tagsMap[i].repetitions == 0){
-				superBlock.tagsMap[i].name = "NULL";
+		if (strcmp(superBlock.tagsMap[i].name, tagName)){
+			superBlock.tagsMap[i].counter = superBlock.tagsMap[i].counter - 1;
+			superBlock.tagsMap[i].files = superBlock.tagsMap[i].files - pow(2, numINode);
+			if (superBlock.tagsMap[i].counter == 0){
+				strncpy(superBlock.tagsMap[i].name, "FREE", 32);												// TODO ¿Qué se considera eliminar?
 			}
 			found = 1;
+			tagID = i;
 		}
 	}
 
@@ -404,26 +428,15 @@ int untagFS(char *fileName, char *tagName) {
 		return -1;
 	}
 
-	int i, fileExist = 0, numINode;
-	for (i = 0 ; i < superBlock.numberINodes ; i++){
-		if (inodes[i].name == fileName){
-			fileExist = 1;
-			numINode = i;
-		}
-
-	if (fileExiste = 0){
-		return -1;
-	}
-
-	tagFound = 0;
+	int tagFound = 0;
 	for (i = 0 ; i < 3 ; i++){
-		if (inodes[numINode].tags[i] == tagName){
-			inodes[numINode].tags[i] = "NULL";
+		if (inodes[numINode].tags[i] == tagID){
+			inodes[numINode].tags[i] = 0;
 			tagFound = 1;
 		}
 	}
 
-	if (tagFound = 0){
+	if (tagFound == 0){
 		return -1;
 	}
 
@@ -441,7 +454,6 @@ int listFS(char *tagName, char **files) {
 		return -1;
 	}
 
-	int tagID = 0;
 	// If there is already a tag with that name: its counter is decrease
 	int i, found = 0, remain;
 	for (i = 0 ; i < 30 ; i++){
@@ -455,18 +467,17 @@ int listFS(char *tagName, char **files) {
 		return -1;
 	}
 
-
-	char files [superBlock.numberINodes];
-	index = superBlock.numberINodes-1;
-	for (i = 0 ; remain > 1 ; i++){
-		files[index] = remain % 2;
-		remain = remain / 2;
+	char filesMap [superBlock.numberINodes];
+	int index = superBlock.numberINodes-1;
+	for (i = 0 ; remain > 0 ; i++){
+		filesMap[index] = remain % 2;
+		remain = floor(remain / 2);
 		index--;
 	}
 
 	for (i = 0 ; i < superBlock.numberINodes ; i++){
-		if (files[i] == 1){
-			files[i] = inodes[i];
+		if (filesMap[i] == 1){
+			files[i] = inodes[i].name;
 		}
 	}
 
