@@ -8,9 +8,10 @@
 #define ANSI_COLOR_GREEN   "\x1b[32m"
 
 int main() {
-	int ret, aux, i, fd;
+	int ret, i, aux, fd;
 	char bufferR[BLOCK_SIZE];
 	char bufferW[BLOCK_SIZE];
+	char **files = (char**) malloc(50*sizeof(char*));
 
 
 	/* -------------------------------- mkFS ---------------------------------- */
@@ -355,71 +356,180 @@ int main() {
 	fprintf(stdout, "%s", "TEST 4: lseek at the end of the file\n");
 	ret = lseekFS(fd, 50000, 2);
 	if (ret != BLOCK_SIZE/2) {
-		fprintf(stdout, "%s%s%s%s", "TEST 4: lseekFS ", ANSI_COLOR_RED, "FAILED\n", ANSI_COLOR_RESET);
+		fprintf(stdout, "%s%s%s%s\n", "TEST 4: lseekFS ", ANSI_COLOR_RED, "FAILED\n", ANSI_COLOR_RESET);
 	}
 	else {
-		fprintf(stdout, "%s%s%s%s", "TEST 4: lseekFS ", ANSI_COLOR_GREEN, "SUCCESS\n", ANSI_COLOR_RESET);
+		fprintf(stdout, "%s%s%s%s\n", "TEST 4: lseekFS ", ANSI_COLOR_GREEN, "SUCCESS\n", ANSI_COLOR_RESET);
 	}
 
 	closeFS(fd);
 
 
-	// fprintf(stdout, "%s", "TEST tagFS + listFS + untagFS\n");
-	//
-	// ret = tagFS("test.txt", "sample");
-	// if(ret != 0) {
-	// 	fprintf(stdout, "%s%s%s%s%s", "TEST tagFS + listFS + untagFS ", ANSI_COLOR_RED, "FAILED ", ANSI_COLOR_RESET, "at tagFS\n");
-	// 	return -1;
-	// }
-	// char **files = (char**) malloc(50*sizeof(char*));
-	// for(i = 0; i < 50; ++i) {
-	// 	files[i] = (char*) malloc(64*sizeof(char));
-	// }
-	// ret = listFS("sample", files);
-	// if(ret != 1 || strcmp(files[0], "test.txt") != 0) {
-	// 	fprintf(stdout, "%s%s%s%s%s", "TEST tagFS + listFS + untagFS ", ANSI_COLOR_RED, "FAILED ", ANSI_COLOR_RESET, "at listFS\n");
-	// 	return -1;
-	// }
-	//
-	// for (i = 0 ; i < 50 ; i++){
-	// 	printf ("%s ", files[i]);
-	// }
-	//
-	// ret = tagFS("test.txt", "2");
-	// ret = tagFS("test.txt", "3");
-	// ret = tagFS("test.txt", "4");
-	// ret = untagFS("test.txt", "sample");
-	// if(ret == -1) {
-	// 	fprintf(stdout, "%s%s%s%s%s", "TEST tagFS + listFS + untagFS ", ANSI_COLOR_RED, "FAILED ", ANSI_COLOR_RESET, "at untagFS\n");
-	// 	return -1;
-	// }
-	//
-	// for (i = 0 ; i < 50 ; i++){
-	// 	files[i] = "";
-	// }
-	//
-	// ret = listFS("sample", files);
-	// if(ret == -1) {
-	// 	fprintf(stdout, "%s%s%s%s%s", "TEST tagFS + listFS + untagFS ", ANSI_COLOR_RED, "FAILED ", ANSI_COLOR_RESET, "at listFS #2\n");
-	// 	return -1;
-	// }
-	//
-	// for (i = 0 ; i < 50 ; i++){
-	// 	printf ("%s ", files[i]);
-	// }
-	//
-	// fprintf(stdout, "%s%s%s%s", "TEST tagFS + listFS + untagFS ", ANSI_COLOR_GREEN, "SUCCESS\n", ANSI_COLOR_RESET);
-	// fprintf(stdout, "%s", "TEST umountFS\n");
-	//
-	//
-	// ret = umountFS();
-	// if(ret != 0) {
-	// 	fprintf(stdout, "%s%s%s%s", "TEST umountFS ", ANSI_COLOR_RED, "FAILED\n", ANSI_COLOR_RESET);
-	// 	return -1;
-	// }
-	//
-	// fprintf(stdout, "%s%s%s%s", "TEST umountFS ", ANSI_COLOR_GREEN, "SUCCESS\n", ANSI_COLOR_RESET);
+
+	/* --------------------------------- tagFS  ------------------------------- */
+	fprintf(stdout, "%s", "-------- TESTS tagFS -------\n");
+
+	fd = openFS("test.txt");
+
+	fprintf(stdout, "%s", "TEST 1: tag with an open file\n");
+	ret = tagFS("test.txt", "tag1");
+	if (ret != -1) {
+		fprintf(stdout, "%s%s%s%s", "TEST 1: tagFS ", ANSI_COLOR_RED, "FAILED\n", ANSI_COLOR_RESET);
+	}
+	else {
+		fprintf(stdout, "%s%s%s%s", "TEST 1: tagFS ", ANSI_COLOR_GREEN, "SUCCESS\n", ANSI_COLOR_RESET);
+	}
+
+	closeFS(fd);
 
 
-	return 0;
+	fprintf(stdout, "%s", "TEST 2: tag a new valid tag\n");
+	ret = tagFS("test.txt", "tag1");
+	if (ret != 0) {
+		fprintf(stdout, "%s%s%s%s", "TEST 2: tagFS ", ANSI_COLOR_RED, "FAILED\n", ANSI_COLOR_RESET);
+	}
+	else {
+		fprintf(stdout, "%s%s%s%s", "TEST 2: tagFS ", ANSI_COLOR_GREEN, "SUCCESS\n", ANSI_COLOR_RESET);
+	}
+
+
+	fprintf(stdout, "%s", "TEST 3: tag a an already existing tag\n");
+	ret = tagFS("test.txt", "tag1");
+	if (ret != 1) {
+		fprintf(stdout, "%s%s%s%s", "TEST 3: tagFS ", ANSI_COLOR_RED, "FAILED\n", ANSI_COLOR_RESET);
+	}
+	else {
+		fprintf(stdout, "%s%s%s%s", "TEST 3: tagFS ", ANSI_COLOR_GREEN, "SUCCESS\n", ANSI_COLOR_RESET);
+	}
+
+
+	if (tagFS("test.txt", "tag2") != 0){
+		return -1;
+	}
+	if (tagFS("test.txt", "tag3") != 0){
+		return -1;
+	}
+
+	fprintf(stdout, "%s", "TEST 4: tag a file without tag spaces\n");
+	ret = tagFS("test.txt", "tag4");
+	if (ret != -1) {
+		fprintf(stdout, "%s%s%s%s\n", "TEST 4: tagFS ", ANSI_COLOR_RED, "FAILED\n", ANSI_COLOR_RESET);
+	}
+	else {
+		fprintf(stdout, "%s%s%s%s\n", "TEST 4: tagFS ", ANSI_COLOR_GREEN, "SUCCESS\n", ANSI_COLOR_RESET);
+	}
+
+
+
+	/* ---------------------------- tagFS + untagFS  -------------------------- */
+	fprintf(stdout, "%s", "-------- TESTS tagFS + untagFS -------\n");
+
+	fprintf(stdout, "%s", "TEST 1: untag a NON existing tag\n");
+	ret = untagFS("test.txt", "tag5");
+	if (ret != -1) {
+		fprintf(stdout, "%s%s%s%s", "TEST 1: untagFS ", ANSI_COLOR_RED, "FAILED\n", ANSI_COLOR_RESET);
+	}
+	else {
+		fprintf(stdout, "%s%s%s%s", "TEST 1: untagFS ", ANSI_COLOR_GREEN, "SUCCESS\n", ANSI_COLOR_RESET);
+	}
+
+	fprintf(stdout, "%s", "TEST 2: untag an existing tag\n");
+	ret = untagFS("test.txt", "tag1");
+	if (ret != 0) {
+		fprintf(stdout, "%s%s%s%s", "TEST 2: untagFS ", ANSI_COLOR_RED, "FAILED\n", ANSI_COLOR_RESET);
+	}
+	else {
+		fprintf(stdout, "%s%s%s%s", "TEST 2: untagFS ", ANSI_COLOR_GREEN, "SUCCESS\n", ANSI_COLOR_RESET);
+	}
+
+	fprintf(stdout, "%s", "TEST 3: tag after being untag another one\n");
+	ret = tagFS("test.txt", "tag1");
+	if (ret != 0) {
+		fprintf(stdout, "%s%s%s%s\n", "TEST 3: untagFS ", ANSI_COLOR_RED, "FAILED\n", ANSI_COLOR_RESET);
+	}
+	else {
+		fprintf(stdout, "%s%s%s%s\n", "TEST 3: untagFS ", ANSI_COLOR_GREEN, "SUCCESS\n", ANSI_COLOR_RESET);
+	}
+
+
+	/* --------------------------------- listFS  ------------------------------ */
+	fprintf(stdout, "%s", "-------- TESTS listFS -------\n");
+
+	fprintf(stdout, "%s", "TEST 1: list files with a tag that do not exist\n");
+	ret = listFS("test.txt", files);
+	if (ret != -1) {
+		fprintf(stdout, "%s%s%s%s", "TEST 1: listFS ", ANSI_COLOR_RED, "FAILED\n", ANSI_COLOR_RESET);
+	}
+	else {
+		fprintf(stdout, "%s%s%s%s", "TEST 1: listFS ", ANSI_COLOR_GREEN, "SUCCESS\n", ANSI_COLOR_RESET);
+	}
+
+
+	if (creatFS("test2.txt") == -1){
+		return -1;
+	}
+	tagFS("test2.txt", "tag1");
+
+	if (creatFS("test3.txt") == -1){
+		return -1;
+	}
+
+	if (creatFS("test4.txt") == -1){
+		return -1;
+	}
+	tagFS("test4.txt", "tag1");
+
+
+	fprintf(stdout, "%s", "TEST 2: list files with the tag (test.txt, test2.txt and test4.txt)\n");
+	ret = listFS("tag1", files);
+	if (strcmp(files[0], "test.txt") != 0 || strcmp(files[1], "test2.txt") != 0 || strcmp(files[2], "test4.txt") != 0) {
+		fprintf(stdout, "%s%s%s%s", "TEST 2: listFS ", ANSI_COLOR_RED, "FAILED\n", ANSI_COLOR_RESET);
+	}
+	else {
+		fprintf(stdout, "%s%s%s%s", "TEST 2: listFS ", ANSI_COLOR_GREEN, "SUCCESS\n", ANSI_COLOR_RESET);
+	}
+
+	if(untagFS("test2.txt", "tag1") == -1){
+		return -1;
+	}
+
+	for (i = 0 ; i < 50 ; i++){
+		files[i] = NULL;
+	}
+
+	fprintf(stdout, "%s", "TEST 3: list files with the tag (test.txt and test4.txt)\n");
+	ret = listFS("tag1", files);
+	if (strcmp(files[0], "test.txt") != 0 || strcmp(files[1], "test4.txt") != 0) {
+		fprintf(stdout, "%s%s%s%s\n", "TEST 3: listFS ", ANSI_COLOR_RED, "FAILED\n", ANSI_COLOR_RESET);
+	}
+	else {
+		fprintf(stdout, "%s%s%s%s\n", "TEST 3: listFS ", ANSI_COLOR_GREEN, "SUCCESS\n", ANSI_COLOR_RESET);
+	}
+
+
+
+	/* ----------------------------- Persistencia  ---------------------------- */
+	fprintf(stdout, "%s", "-------- TESTS persistency of data -------\n");
+
+	for (i = 0 ; i < 50 ; i++){
+		files[i] = NULL;
+	}
+
+	fprintf(stdout, "%s", "TEST 1: unmount, mount ant listFS\n");
+
+	if (umountFS() == -1){
+		return -1;
+	}
+
+	if (mountFS() == -1){
+		return -1;
+	}
+
+	ret = listFS("tag1", files);
+	if (strcmp(files[0], "test.txt") != 0 || strcmp(files[1], "test4.txt") != 0) {
+		fprintf(stdout, "%s%s%s%s", "TEST 1: listFS ", ANSI_COLOR_RED, "FAILED\n", ANSI_COLOR_RESET);
+	}
+	else {
+		fprintf(stdout, "%s%s%s%s", "TEST 1: listFS ", ANSI_COLOR_GREEN, "SUCCESS\n", ANSI_COLOR_RESET);
+	}
 }

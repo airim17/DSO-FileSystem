@@ -562,21 +562,20 @@ int listFS (char *tagName, char **files) {
 
 	// Creating the elements to operate with the files bit map
 	char filesMap [superBlock.numberINodes];
-	int index = superBlock.numberINodes - 1;
 
 	// Storing in the files bit map which files contain the tag
 	for (i = 0 ; remain > 0 ; i++){
-		filesMap[index] = remain % 2;
+		filesMap[i] = remain % 2;
 		remain = floor(remain / 2);
-		index--;
 	}
 
 	// Storing into the "files" array the names of the found files
-	int foundFiles = 0;
+	int filesIndex = 0, foundFiles = 0;
 	for (i = 0 ; i < superBlock.numberINodes ; i++){
 		if (filesMap[i] == 1){
+			files[filesIndex] = inodes[i].name;
 			foundFiles = foundFiles + 1;
-			files[i] = inodes[i].name;
+			filesIndex = filesIndex + 1;
 		}
 	}
 
