@@ -17,7 +17,7 @@ typedef struct tag {
 
 typedef struct inode {
 	char name [64];
-	unsigned short filePointer;																										// TODO: ¿2 punteros diferentes para leer / escribir?
+	unsigned short position;
 	unsigned short size;
 	unsigned char open;
 	char tags [3];
@@ -72,7 +72,7 @@ int mkFS (int maxNumFiles, long deviceSize) {
 	// Initializing all the inodes structures to their default values
 	for (i = 0; i < 50 ; i++){
 		strncpy(inodes[i].name, "", 64);
-		inodes[i].filePointer = 0;
+		inodes[i].position = 0;
 		inodes[i].size = 0;
 		inodes[i].open = 0;
 		inodes[i].tags[0] = -1;
@@ -206,7 +206,7 @@ int openFS (char *fileName) {
 			}
 
 			inodes[i].open = 1;
-			inodes[i].filePointer = 0;
+			inodes[i].position = 0;
 			return (i + superBlock.firstDataBlock);
 		}
 	}
@@ -246,7 +246,7 @@ int readFS (int fileDescriptor, void *buffer, int numBytes) {
 
 	// Obtaining data block "offset" and file offset
 	int index = fileDescriptor - superBlock.firstDataBlock;
-	int offset = inodes[index].filePointer;
+	int offset = inodes[index].position;
 
 	// Checking if the number of bytes is valid
 	if (numBytes < 0){
@@ -259,7 +259,7 @@ int readFS (int fileDescriptor, void *buffer, int numBytes) {
 	}
 
 	// Checking if there is no byte left to be read
-	if (inodes[index].filePointer == inodes[index].size){
+	if (inodes[index].position == inodes[index].size){
 		return 0;
 	}
 
@@ -272,13 +272,13 @@ int readFS (int fileDescriptor, void *buffer, int numBytes) {
 	// If the number of bytes to read is higher than the number of remaining ones
 	if (offset + numBytes > inodes[index].size){
 			memcpy(buffer, &(block[offset]), inodes[index].size - offset);
-			inodes[index].filePointer = inodes[index].size;
+			inodes[index].position = inodes[index].size;
 			return inodes[index].size - offset;
 	}
 
 	// If it is the common behaviour
 	memcpy(buffer, &(block[offset]), numBytes);
-	inodes[index].filePointer = offset + numBytes;
+	inodes[index].position = offset + numBytes;
 	return numBytes;
 }
 
@@ -293,7 +293,7 @@ int writeFS (int fileDescriptor, void *buffer, int numBytes) {
 
 	// Obtaining data block "offset" and file offset
 	int index = fileDescriptor - superBlock.firstDataBlock;
-	int offset = inodes[index].filePointer;
+	int offset = inodes[index].position;
 
 	// Checking if the number of bytes is valid
 	if (numBytes < 0 || (offset + numBytes) > MAX_FILE_SIZE){
@@ -306,7 +306,7 @@ int writeFS (int fileDescriptor, void *buffer, int numBytes) {
 	}
 
 	// Checking if there is no byte left to be read
-	if (inodes[index].filePointer == MAX_FILE_SIZE){
+	if (inodes[index].position == MAX_FILE_SIZE){
 		return 0;
 	}
 
@@ -318,7 +318,7 @@ int writeFS (int fileDescriptor, void *buffer, int numBytes) {
 
 	// Updating the pointer and the size of the file
 	memcpy(&(buffer[offset]), block, numBytes);
-	inodes[index].filePointer = offset + numBytes;
+	inodes[index].position = offset + numBytes;
 	if (offset + numBytes > inodes[index].size){
 		inodes[index].size = offset + numBytes;
 	}
@@ -344,20 +344,20 @@ int lseekFS (int fileDescriptor, long offset, int whence) {
 	}
 
 	// Taking different actions depending on the "whence" value
-	if (whence == FS_SEEK_SET && offset > 0 && offset < inodes[index].size){			// TODO: ¿Los ficheros empiezan en 0 o en 1?
-		inodes[index].filePointer = offset;
+	if (whence == FS_SEEK_SET && offset >= 0 && offset < inodes[index].size){
+		inodes[index].position = offset;
 	}
 	else if (whence == FS_SEEK_BEGIN){
-		inodes[index].filePointer = 0;																							// TODO: ¿Los ficheros empiezan en 0 o en 1?
+		inodes[index].position = 0;
 	}
 	else if (whence == FS_SEEK_END){
-		inodes[index].filePointer = inodes[index].size;
+		inodes[index].position = inodes[index].size;
 	}
 	else {
 		return -1;
 	}
 
-	return inodes[index].filePointer;
+	return inodes[index].position;
 }
 
 
@@ -442,15 +442,9 @@ int tagFS (char *fileName, char *tagName) {
 					if (inodes[numINode].tags[j] == -1){
 						tagSpace = j;
 					}
-					if (inodes[numINode].tags[j] == i){
-						tagged = 1;
-					}
 				}
 
-				if (tagged == 1){
-					return 1;
-				}
-				else if (tagSpace == -1){
+				if (tagSpace == -1){
 					return -1;
 				}
 
@@ -462,6 +456,11 @@ int tagFS (char *fileName, char *tagName) {
 				// Break the loop with one space is enough
 				break;
 			}
+		}
+
+		// If there is not space in the system to create the new tag: error
+		if (tagSpace == -1){
+			return -1;
 		}
 	}
 
