@@ -321,7 +321,7 @@ int main() {
 	fprintf(stdout, "%s", "-------- TESTS lseekFS -------\n");
 
 
-	fprintf(stdout, "%s", "TEST 1: lseek withour opening the file\n");
+	fprintf(stdout, "%s", "TEST 1: lseek without opening the file\n");
 	ret = lseekFS(3, 0, BLOCK_SIZE/2);
 	if (ret != -1) {
 		fprintf(stdout, "%s%s%s%s", "TEST 1: lseekFS ", ANSI_COLOR_RED, "FAILED\n", ANSI_COLOR_RESET);
@@ -515,7 +515,7 @@ int main() {
 		files[i] = NULL;
 	}
 
-	fprintf(stdout, "%s", "TEST 1: unmount, mount ant listFS\n");
+	fprintf(stdout, "%s", "TEST 1: unmount, mount and listFS\n");
 
 	if (umountFS() == -1){
 		return -1;
