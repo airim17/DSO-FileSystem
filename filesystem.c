@@ -17,7 +17,7 @@ typedef struct tag {
 
 typedef struct inode {
 	char name [64];
-	unsigned short position;
+	unsigned short position;																											// TODO: ¿Problema entre size y pointer?
 	unsigned short size;
 	unsigned char open;
 	char tags [3];
@@ -344,7 +344,7 @@ int lseekFS (int fileDescriptor, long offset, int whence) {
 	}
 
 	// Taking different actions depending on the "whence" value
-	if (whence == FS_SEEK_SET && offset >= 0 && offset < inodes[index].size){
+	if (whence == FS_SEEK_SET && offset >= 0 && offset < inodes[index].size){			// TODO: REVISAR
 		inodes[index].position = offset;
 	}
 	else if (whence == FS_SEEK_BEGIN){
@@ -547,7 +547,8 @@ int listFS (char *tagName, char **files) {
 	}
 
 	// If there is already a tag with that name: take its "file" value
-	int i, remain, found = 0;
+	int i, found = 0;
+	long remain;
 	for (i = 0 ; i < 30 ; i++){
 		if (strcmp(superBlock.tagsMap[i].name, tagName) == 0){
 			remain = superBlock.tagsMap[i].files;
