@@ -17,7 +17,7 @@ typedef struct tag {
 
 typedef struct inode {
 	char name [64];
-	unsigned short position;																											// TODO: ¿Problema entre size y pointer?
+	unsigned short position;
 	unsigned short size;
 	unsigned char open;
 	char tags [3];
@@ -259,7 +259,7 @@ int readFS (int fileDescriptor, void *buffer, int numBytes) {
 	}
 
 	// Checking if there is no byte left to be read
-	if (inodes[index].position == inodes[index].size){
+	if (offset == inodes[index].size){
 		return 0;
 	}
 
@@ -305,8 +305,8 @@ int writeFS (int fileDescriptor, void *buffer, int numBytes) {
 		return -1;
 	}
 
-	// Checking if there is no byte left to be read
-	if (inodes[index].position == MAX_FILE_SIZE){
+	// Checking if there is no space left to write
+	if (offset == MAX_FILE_SIZE){
 		return 0;
 	}
 
@@ -344,7 +344,7 @@ int lseekFS (int fileDescriptor, long offset, int whence) {
 	}
 
 	// Taking different actions depending on the "whence" value
-	if (whence == FS_SEEK_SET && offset >= 0 && offset < inodes[index].size){			// TODO: REVISAR
+	if (whence == FS_SEEK_SET && offset >= 0 && offset <= inodes[index].size){
 		inodes[index].position = offset;
 	}
 	else if (whence == FS_SEEK_BEGIN){
