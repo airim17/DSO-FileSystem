@@ -38,6 +38,7 @@ inode inodes[50];
 
 int sblockSize = sizeof(superBlock);
 int inodesSize = sizeof(inode) * 50;
+int i, j;
 
 
 /***************************/
@@ -58,7 +59,6 @@ int mkFS (int maxNumFiles, long deviceSize) {
 	}
 
 	// Initializing all the superblock structures to their default values
-	int i;
 	for (i = 0; i < 30 ; i++){
 		strncpy(superBlock.tagsMap[i].name, "FREE", 32);
 		superBlock.tagsMap[i].files = 0;
@@ -129,7 +129,6 @@ int mountFS () {
 int umountFS () {
 
 	// Checking if there are open files
-	int i;
 	for (i = 0 ; i < superBlock.numberINodes ; i++){
 		if (inodes[i].open == 1){
 			return -1;
@@ -181,7 +180,6 @@ int creatFS(char *fileName) {
 	}
 
 	// Checking if there is another i-node with the same name
-	int i;
 	for (i = 0 ; i < superBlock.numberINodes ; i++){
 		if (strcmp(inodes[i].name, fileName) == 0){
 			return 1;
@@ -208,7 +206,6 @@ int openFS (char *fileName) {
 		return -2;
 	}
 
-	int i;
 	for (i = 0 ; i < superBlock.numberINodes ; i++){
 		if (strcmp(inodes[i].name, fileName) == 0){
 
@@ -411,7 +408,7 @@ int tagFS (char *fileName, char *tagName) {
 	}
 
 	// Checking if the file is already in our file system
-	int i, numINode, fileExist = 0;
+	int numINode, fileExist = 0;
 	for (i = 0 ; i < superBlock.numberINodes ; i++){
 		if (strcmp(inodes[i].name, fileName) == 0){
 
@@ -430,7 +427,7 @@ int tagFS (char *fileName, char *tagName) {
 	}
 
 	// If there is already a tag with that name: its files are updated
-	int j, found = 0, tagSpace = -1, tagged = 0;
+	int found = 0, tagSpace = -1, tagged = 0;
 	for (i = 0 ; i < 30 ; i++){
 
 		if (strcmp(superBlock.tagsMap[i].name, tagName) == 0){
@@ -517,7 +514,7 @@ int untagFS (char *fileName, char *tagName) {
 	}
 
 	// Checking if the file is already in our file system
-	int i, numINode, fileExist = 0;
+	int numINode, fileExist = 0;
 	for (i = 0 ; i < superBlock.numberINodes ; i++){
 		if (strcmp(inodes[i].name, fileName) == 0){
 
@@ -536,7 +533,7 @@ int untagFS (char *fileName, char *tagName) {
 	}
 
 	// If there is already a tag with that name: its files are updated
-	int j, systemTag = 0, fileTag = 0;
+	int systemTag = 0, fileTag = 0;
 	for (i = 0 ; i < 30 ; i++){
 		if (strcmp(superBlock.tagsMap[i].name, tagName) == 0){
 			systemTag = 1;
@@ -586,7 +583,7 @@ int listFS (char *tagName, char **files) {
 	}
 
 	// If there is already a tag with that name: take its "file" value
-	int i, found = 0;
+	int found = 0;
 	long remain;
 	for (i = 0 ; i < 30 ; i++){
 		if (strcmp(superBlock.tagsMap[i].name, tagName) == 0){
