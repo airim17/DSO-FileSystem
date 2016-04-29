@@ -8,7 +8,7 @@
 #define ANSI_COLOR_GREEN   "\x1b[32m"
 
 int main() {
-	int ret, i, aux, fd;
+	int ret, i, fd;
 	char bufferR[BLOCK_SIZE];
 	char bufferW[BLOCK_SIZE];
 	char **files = (char**) malloc(50*sizeof(char*));
@@ -79,6 +79,11 @@ int main() {
 	}
 
 
+	/* From now on we need to have the file system mounted */
+	if (mountFS() == -1){
+		return -1;
+	}
+
 
 	/* ------------------------------- creatFS -------------------------------- */
 	fprintf(stdout, "%s", "-------- TESTS creatFS -------\n");
@@ -103,13 +108,23 @@ int main() {
 	}
 
 
-	fprintf(stdout, "%s", "TEST 3: creatFS with an invalid name\n");
-	ret = creatFS("loooooooooooooooooooooooooooooooooooooooooooooooooooooooooong.txt");
+	fprintf(stdout, "%s", "TEST 3: creatFS with a name of length 0\n");
+	ret = creatFS("");
 	if (ret != -1) {
-		fprintf(stdout, "%s%s%s%s\n", "TEST 3: creatFS ", ANSI_COLOR_RED, "FAILED\n", ANSI_COLOR_RESET);
+		fprintf(stdout, "%s%s%s%s", "TEST 3: creatFS ", ANSI_COLOR_RED, "FAILED\n", ANSI_COLOR_RESET);
 	}
 	else {
-		fprintf(stdout, "%s%s%s%s\n", "TEST 3: creatFS ", ANSI_COLOR_GREEN, "SUCCESS\n", ANSI_COLOR_RESET);
+		fprintf(stdout, "%s%s%s%s", "TEST 3: creatFS ", ANSI_COLOR_GREEN, "SUCCESS\n", ANSI_COLOR_RESET);
+	}
+
+
+	fprintf(stdout, "%s", "TEST 4: creatFS with a long name\n");
+	ret = creatFS("loooooooooooooooooooooooooooooooooooooooooooooooooooooooooong.txt");
+	if (ret != -1) {
+		fprintf(stdout, "%s%s%s%s\n", "TEST 4: creatFS ", ANSI_COLOR_RED, "FAILED\n", ANSI_COLOR_RESET);
+	}
+	else {
+		fprintf(stdout, "%s%s%s%s\n", "TEST 4: creatFS ", ANSI_COLOR_GREEN, "SUCCESS\n", ANSI_COLOR_RESET);
 	}
 
 
@@ -146,23 +161,23 @@ int main() {
 
 
 	fprintf(stdout, "%s", "TEST 3: openFS an already open file\n");
-	aux = openFS("test.txt");
-	if (aux == -1 || aux == -2) {
+	fd = openFS("test.txt");
+	if (fd == -1 || fd == -2) {
 		fprintf(stdout, "%s%s%s%s", "TEST 3: openFS #1 ", ANSI_COLOR_RED, "FAILED\n", ANSI_COLOR_RESET);
 	}
 	else {
 		fprintf(stdout, "%s%s%s%s", "TEST 3: openFS #1 ", ANSI_COLOR_GREEN, "SUCCESS\n", ANSI_COLOR_RESET);
 	}
 
-	ret = openFS("test.txt");
-	if (ret != -2) {
+	fd = openFS("test.txt");
+	if (fd == -1 || fd == -2) {
 		fprintf(stdout, "%s%s%s%s", "TEST 3: openFS #2 ", ANSI_COLOR_RED, "FAILED\n", ANSI_COLOR_RESET);
 	}
 	else {
 		fprintf(stdout, "%s%s%s%s", "TEST 3: openFS #2 ", ANSI_COLOR_GREEN, "SUCCESS\n", ANSI_COLOR_RESET);
 	}
 
-	ret = closeFS(aux);
+	ret = closeFS(fd);
 	if (ret != 0) {
 		fprintf(stdout, "%s%s%s%s", "TEST 3: closeFS ", ANSI_COLOR_RED, "FAILED\n", ANSI_COLOR_RESET);
 	}
@@ -171,9 +186,9 @@ int main() {
 	}
 
 
-	fprintf(stdout, "%s", "TEST 4: closeFS without openFS\n");
+	fprintf(stdout, "%s", "TEST 4: closeFS an already closed file\n");
 	ret = closeFS(3);
-	if (ret != -1) {
+	if (ret != 0) {
 		fprintf(stdout, "%s%s%s%s\n", "TEST 4: closeFS ", ANSI_COLOR_RED, "FAILED\n", ANSI_COLOR_RESET);
 	}
 	else {

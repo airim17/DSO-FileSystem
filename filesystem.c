@@ -24,11 +24,12 @@ typedef struct inode {
 
 } inode;
 
-typedef struct sblock {																													// TODO: ¿Campo para verificar si el sistema está montado?
+typedef struct sblock {
 	struct tag tagsMap [30];
 	unsigned char numberINodes;
 	unsigned char firstDataBlock;
 	unsigned char maximumFiles;
+	unsigned char mounted;
 
 } sblock;
 
@@ -68,6 +69,7 @@ int mkFS (int maxNumFiles, long deviceSize) {
 	superBlock.numberINodes = 0;
 	superBlock.firstDataBlock = 2;
 	superBlock.maximumFiles = (unsigned char) maxNumFiles;
+	superBlock.mounted = 0;
 
 	// Initializing all the inodes structures to their default values
 	for (i = 0; i < 50 ; i++){
@@ -120,6 +122,7 @@ int mountFS () {
 	}
 
 	memcpy(inodes, block, inodesSize);
+	superBlock.mounted = 1;
 	return 0;
 }
 
@@ -152,6 +155,7 @@ int umountFS () {
 		return -1;
 	}
 
+	superBlock.mounted = 0;
 	return 0;
 }
 
@@ -162,6 +166,11 @@ int umountFS () {
 
 /* Creates a new file, if it doesn't exist */
 int creatFS(char *fileName) {
+
+	// Checking if the file system is mounted
+	if (superBlock.mounted == 0){
+		return -1;
+	}
 
 	// Checking if there is enough space for another file
 	if (superBlock.numberINodes == superBlock.maximumFiles){
@@ -191,6 +200,11 @@ int creatFS(char *fileName) {
 /* Opens an existing file */
 int openFS (char *fileName) {
 
+	// Checking if the file system is mounted
+	if (superBlock.mounted == 0){
+		return -2;
+	}
+
 	// Checking if the file name has the proper length
 	if (strlen(fileName) < 1 || strlen(fileName) > 64){
 		return -2;
@@ -200,9 +214,9 @@ int openFS (char *fileName) {
 	for (i = 0 ; i < superBlock.numberINodes ; i++){
 		if (strcmp(inodes[i].name, fileName) == 0){
 
-			// Checking if the file was already open
+			// If the file was already open, return its file descriptor without reseting the pointer
 			if (inodes[i].open == 1){
-				return -2;
+				return (i + superBlock.firstDataBlock);
 			}
 
 			inodes[i].open = 1;
@@ -218,6 +232,11 @@ int openFS (char *fileName) {
 /* Closes a file */
 int closeFS (int fileDescriptor) {
 
+	// Checking if the file system is mounted
+	if (superBlock.mounted == 0){
+		return -1;
+	}
+
 	// Checking if the file descriptor is a valid number
 	if (fileDescriptor > superBlock.numberINodes + superBlock.firstDataBlock){
 		return -1;
@@ -226,11 +245,6 @@ int closeFS (int fileDescriptor) {
 	// Obtaining data block "offset"
 	int index = fileDescriptor - superBlock.firstDataBlock;
 
-	// Checking if the file was already closed
-	if (inodes[index].open == 0){
-		return -1;
-	}
-
 	inodes[index].open = 0;
 	return 0;
 }
@@ -238,6 +252,11 @@ int closeFS (int fileDescriptor) {
 
 /* Reads a number of bytes from a file and stores them in a buffer */
 int readFS (int fileDescriptor, void *buffer, int numBytes) {
+
+	// Checking if the file system is mounted
+	if (superBlock.mounted == 0){
+		return -1;
+	}
 
 	// Checking if the file descriptor is a valid number
 	if (fileDescriptor < superBlock.firstDataBlock || fileDescriptor > (superBlock.numberINodes + superBlock.firstDataBlock)){
@@ -286,6 +305,11 @@ int readFS (int fileDescriptor, void *buffer, int numBytes) {
 /* Reads number of bytes from a buffer and writes them in a file */
 int writeFS (int fileDescriptor, void *buffer, int numBytes) {
 
+	// Checking if the file system is mounted
+	if (superBlock.mounted == 0){
+		return -1;
+	}
+
 	// Checking if the file descriptor is a valid number
 	if (fileDescriptor < superBlock.firstDataBlock || fileDescriptor > (superBlock.numberINodes + superBlock.firstDataBlock)){
 		return -1;
@@ -330,6 +354,11 @@ int writeFS (int fileDescriptor, void *buffer, int numBytes) {
 /* Repositions the pointer of a file */
 int lseekFS (int fileDescriptor, long offset, int whence) {
 
+	// Checking if the file system is mounted
+	if (superBlock.mounted == 0){
+		return -1;
+	}
+
 	// Checking if the file descriptor is a valid number
 	if (fileDescriptor < superBlock.firstDataBlock || fileDescriptor > (superBlock.numberINodes + superBlock.firstDataBlock)){
 		return -1;
@@ -367,6 +396,11 @@ int lseekFS (int fileDescriptor, long offset, int whence) {
 
 /* Tags a file with the given tag name */
 int tagFS (char *fileName, char *tagName) {
+
+	// Checking if the file system is mounted
+	if (superBlock.mounted == 0){
+		return -1;
+	}
 
 	// Checking if the file name has the proper length
 	if (strlen(fileName) < 1 || strlen(fileName) > 64){
@@ -471,6 +505,11 @@ int tagFS (char *fileName, char *tagName) {
 /* Removes a tag from a file */
 int untagFS (char *fileName, char *tagName) {
 
+	// Checking if the file system is mounted
+	if (superBlock.mounted == 0){
+		return -1;
+	}
+
 	// Checking if the file name has the proper length
 	if (strlen(fileName) < 1 || strlen(fileName) > 64){
 		return -1;
@@ -540,6 +579,11 @@ int untagFS (char *fileName, char *tagName) {
 
 /* Looks for all files tagged with the tag tagName, and stores them in a list */
 int listFS (char *tagName, char **files) {
+
+	// Checking if the file system is mounted
+	if (superBlock.mounted == 0){
+		return -1;
+	}
 
 	// Checking if the tag name has the proper length
 	if (strlen(tagName) < 1 || strlen(tagName) > 32){
