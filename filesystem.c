@@ -9,15 +9,15 @@
 /* Types of structs */
 typedef struct tag {
 	char name [32];
-	unsigned long files;
+	long files;
 
 } tag;
 
 typedef struct inode {
 	char name [64];
-	unsigned short size;
-	unsigned short position;
-	unsigned char open;
+	short size;
+	short position;
+	char open;
 	char tags [3];
 
 } inode;
@@ -25,9 +25,9 @@ typedef struct inode {
 typedef struct sblock {
 	struct tag tagsMap [30];
 	unsigned char numberINodes;
-	unsigned char firstDataBlock;
-	unsigned char maximumFiles;
-	unsigned char mounted;
+	char firstDataBlock;
+	char maximumFiles;
+	char mounted;
 
 } sblock;
 
@@ -37,13 +37,13 @@ inode inodes[50];
 
 int sblockSize = sizeof(superBlock);
 int inodesSize = sizeof(inode) * 50;
-int i, j;
+int i, j, k;
 
 /* PRIVATE FUNCTION TO BE ABLE OF WORKING WITH THE FILES BITMAP */
 long power (int base, int exponent){
 
 	long result = 1;
-	for (i = 0 ; i < exponent ; i++){
+	for (k = 0 ; k < exponent ; k++){
 		result = result * base;
 	}
 
@@ -76,7 +76,7 @@ int mkFS (int maxNumFiles, long deviceSize) {
 
 	superBlock.numberINodes = 0;
 	superBlock.firstDataBlock = 2;
-	superBlock.maximumFiles = (unsigned char) maxNumFiles;
+	superBlock.maximumFiles = maxNumFiles;
 	superBlock.mounted = 0;
 
 	// Initializing all the inodes structures to their default values
@@ -423,7 +423,7 @@ int tagFS (char *fileName, char *tagName) {
 	}
 
 	// Checking if the file is already in our file system
-	int numINode, fileExist = 0;
+	int numINode = -1;
 	for (i = 0 ; i < superBlock.numberINodes ; i++){
 		if (strcmp(inodes[i].name, fileName) == 0){
 
@@ -432,12 +432,11 @@ int tagFS (char *fileName, char *tagName) {
 				return -1;
 			}
 
-			fileExist = 1;
 			numINode = i;
 		}
 	}
 
-	if (fileExist == 0){
+	if (numINode = -1){
 		return -1;
 	}
 
@@ -529,7 +528,7 @@ int untagFS (char *fileName, char *tagName) {
 	}
 
 	// Checking if the file is already in our file system
-	int numINode, fileExist = 0;
+	int numINode = -1;
 	for (i = 0 ; i < superBlock.numberINodes ; i++){
 		if (strcmp(inodes[i].name, fileName) == 0){
 
@@ -538,12 +537,11 @@ int untagFS (char *fileName, char *tagName) {
 				return -1;
 			}
 
-			fileExist = 1;
 			numINode = i;
 		}
 	}
 
-	if (fileExist == 0){
+	if (numINode == -1){
 		return -1;
 	}
 
@@ -611,23 +609,18 @@ int listFS (char *tagName, char **files) {
 		return -1;
 	}
 
-	// Creating the elements to operate with the files bit map
-	char filesMap [superBlock.numberINodes];
-
-	// Storing in the files bit map which files contain the tag
-	for (i = 0 ; remain > 0 ; i++){
-		filesMap[i] = remain % 2;
-		remain = (long) (remain / 2);
-	}
-
 	// Storing into the "files" array the names of the found files
 	int filesIndex = 0, foundFiles = 0;
-	for (i = 0 ; i < superBlock.numberINodes ; i++){
-		if (filesMap[i] == 1){
+	for (i = 0 ; remain > 0 ; i++){
+
+		// If that file has the tag: its name is stored and both variables are updated
+		if ((remain % 2) == 1){
 			files[filesIndex] = inodes[i].name;
 			foundFiles = foundFiles + 1;
 			filesIndex = filesIndex + 1;
 		}
+
+		remain = (long) (remain / 2);
 	}
 
 	return foundFiles;
