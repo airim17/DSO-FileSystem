@@ -436,7 +436,7 @@ int tagFS (char *fileName, char *tagName) {
 		}
 	}
 
-	if (numINode = -1){
+	if (numINode == -1){
 		return -1;
 	}
 
