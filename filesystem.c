@@ -4,7 +4,6 @@
 
 #include "include/filesystem.h"
 #include <stdio.h>
-#include <math.h>
 #include <string.h>
 
 /* Types of structs */
@@ -39,6 +38,17 @@ inode inodes[50];
 int sblockSize = sizeof(superBlock);
 int inodesSize = sizeof(inode) * 50;
 int i, j;
+
+/* PRIVATE FUNCTION TO BE ABLE OF WORKING WITH THE FILES BITMAP */
+long power (int base, int exponent){
+
+	long result = 1;
+	for (i = 0 ; i < exponent ; i++){
+		result = result * base;
+	}
+
+	return result;
+}
 
 
 /***************************/
@@ -457,7 +467,7 @@ int tagFS (char *fileName, char *tagName) {
 			}
 
 			inodes[numINode].tags[tagSpace] = i;
-			superBlock.tagsMap[i].files = superBlock.tagsMap[i].files + pow(2, numINode);
+			superBlock.tagsMap[i].files = superBlock.tagsMap[i].files + power(2, numINode);
 
 			// Break the loop, there will be only 1 tag with that name
 			break;
@@ -483,7 +493,7 @@ int tagFS (char *fileName, char *tagName) {
 
 				inodes[numINode].tags[tagSpace] = i;
 				strncpy(superBlock.tagsMap[i].name, tagName, 32);
-				superBlock.tagsMap[i].files = pow(2, numINode);
+				superBlock.tagsMap[i].files = power(2, numINode);
 
 				// Break the loop with one space is enough
 				break;
@@ -555,7 +565,7 @@ int untagFS (char *fileName, char *tagName) {
 				return 1;
 			}
 
-			superBlock.tagsMap[i].files = superBlock.tagsMap[i].files - pow(2, numINode);
+			superBlock.tagsMap[i].files = superBlock.tagsMap[i].files - power(2, numINode);
 			if (superBlock.tagsMap[i].files == 0){
 				strncpy(superBlock.tagsMap[i].name, "FREE", 32);
 			}
@@ -607,7 +617,7 @@ int listFS (char *tagName, char **files) {
 	// Storing in the files bit map which files contain the tag
 	for (i = 0 ; remain > 0 ; i++){
 		filesMap[i] = remain % 2;
-		remain = floor(remain / 2);
+		remain = (long) (remain / 2);
 	}
 
 	// Storing into the "files" array the names of the found files
