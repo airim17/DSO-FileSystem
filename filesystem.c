@@ -16,8 +16,8 @@ typedef struct tag {
 
 typedef struct inode {
 	char name [64];
-	unsigned short position;
 	unsigned short size;
+	unsigned short position;
 	unsigned char open;
 	char tags [3];
 
@@ -72,8 +72,8 @@ int mkFS (int maxNumFiles, long deviceSize) {
 	// Initializing all the inodes structures to their default values
 	for (i = 0; i < 50 ; i++){
 		strncpy(inodes[i].name, "", 64);
-		inodes[i].position = 0;
 		inodes[i].size = 0;
+		inodes[i].position = 0;
 		inodes[i].open = 0;
 		inodes[i].tags[0] = -1;
 		inodes[i].tags[1] = -1;
@@ -329,14 +329,19 @@ int writeFS (int fileDescriptor, void *buffer, int numBytes) {
 		return 0;
 	}
 
-	// Writting data into the disk
+	// Reading the indicated block from the disk
 	char block[BLOCK_SIZE];
-	if (bwrite(DEVICE_IMAGE, fileDescriptor, buffer) == -1){
+	if (bread(DEVICE_IMAGE, fileDescriptor, block) == -1){
+		return -1;
+	}
+
+	// Writting data into the disk
+	memcpy(&(block[offset]), buffer, numBytes);
+	if (bwrite(DEVICE_IMAGE, fileDescriptor, block) == -1){
 		return -1;
 	}
 
 	// Updating the pointer and the size of the file
-	memcpy(&(buffer[offset]), block, numBytes);
 	inodes[index].position = offset + numBytes;
 	if (offset + numBytes > inodes[index].size){
 		inodes[index].size = offset + numBytes;
