@@ -10,7 +10,6 @@
 /* Types of structs */
 typedef struct tag {
 	char name [32];
-	unsigned char counter;
 	unsigned long files;
 
 } tag;
@@ -62,7 +61,6 @@ int mkFS (int maxNumFiles, long deviceSize) {
 	int i;
 	for (i = 0; i < 30 ; i++){
 		strncpy(superBlock.tagsMap[i].name, "FREE", 32);
-		superBlock.tagsMap[i].counter = 0;
 		superBlock.tagsMap[i].files = 0;
 	}
 
@@ -431,7 +429,7 @@ int tagFS (char *fileName, char *tagName) {
 		return -1;
 	}
 
-	// If there is already a tag with that name: its counter and files are updated
+	// If there is already a tag with that name: its files are updated
 	int j, found = 0, tagSpace = -1, tagged = 0;
 	for (i = 0 ; i < 30 ; i++){
 
@@ -457,7 +455,6 @@ int tagFS (char *fileName, char *tagName) {
 			}
 
 			inodes[numINode].tags[tagSpace] = i;
-			superBlock.tagsMap[i].counter = superBlock.tagsMap[i].counter + 1;
 			superBlock.tagsMap[i].files = superBlock.tagsMap[i].files + pow(2, numINode);
 
 			// Break the loop, there will be only 1 tag with that name
@@ -469,7 +466,7 @@ int tagFS (char *fileName, char *tagName) {
 	if (found == 0){
 
 		for (i = 0 ; i < 30 ; i++){
-			if (strcmp(superBlock.tagsMap[i].name, "FREE") == 0 && superBlock.tagsMap[i].counter == 0){
+			if (strcmp(superBlock.tagsMap[i].name, "FREE") == 0 && superBlock.tagsMap[i].files == 0){
 
 				// Traversing the file tags looking for a space or a match between names
 				for (j = 0 ; j < 3 ; j++){
@@ -484,7 +481,6 @@ int tagFS (char *fileName, char *tagName) {
 
 				inodes[numINode].tags[tagSpace] = i;
 				strncpy(superBlock.tagsMap[i].name, tagName, 32);
-				superBlock.tagsMap[i].counter = 1;
 				superBlock.tagsMap[i].files = pow(2, numINode);
 
 				// Break the loop with one space is enough
@@ -539,7 +535,7 @@ int untagFS (char *fileName, char *tagName) {
 		return -1;
 	}
 
-	// If there is already a tag with that name: its counter is decrease
+	// If there is already a tag with that name: its files are updated
 	int j, systemTag = 0, fileTag = 0;
 	for (i = 0 ; i < 30 ; i++){
 		if (strcmp(superBlock.tagsMap[i].name, tagName) == 0){
@@ -557,9 +553,8 @@ int untagFS (char *fileName, char *tagName) {
 				return 1;
 			}
 
-			superBlock.tagsMap[i].counter = superBlock.tagsMap[i].counter - 1;
 			superBlock.tagsMap[i].files = superBlock.tagsMap[i].files - pow(2, numINode);
-			if (superBlock.tagsMap[i].counter == 0){
+			if (superBlock.tagsMap[i].files == 0){
 				strncpy(superBlock.tagsMap[i].name, "FREE", 32);
 			}
 

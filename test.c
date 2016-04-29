@@ -547,4 +547,6 @@ int main() {
 	else {
 		fprintf(stdout, "%s%s%s%s", "TEST 1: listFS ", ANSI_COLOR_GREEN, "SUCCESS\n", ANSI_COLOR_RESET);
 	}
+
+	return 0;
 }
