@@ -38,7 +38,7 @@ int main() {
 
 
 	fprintf(stdout, "%s", "TEST 3: Creating a device with valid parameters\n");
-	ret = mkFS(10, 400000);
+	ret = mkFS(50, 400000);
 	if (ret != 0) {
 		fprintf(stdout, "%s%s%s\n", ANSI_COLOR_RED, "FAILED\n", ANSI_COLOR_RESET);
 	}
@@ -127,6 +127,9 @@ int main() {
 
 
 	fprintf(stdout, "%s", "TEST 5: creatFS when there is no space\n");
+	mkFS(10, 400000);
+	mountFS();
+	creatFS("test1.txt");
 	creatFS("test2.txt");
 	creatFS("test3.txt");
 	creatFS("test4.txt");
