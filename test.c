@@ -321,8 +321,8 @@ int main() {
 
 
 
-	/* -------------------------- readFS + writeFS  --------------------------- */
-	fprintf(stdout, "%s", "-------- TESTS readFS + writeFS -------\n");
+	/* -------------------------- lseekFS + readFS + writeFS  --------------------------- */
+	fprintf(stdout, "%s", "-------- TESTS lseekFS + readFS + writeFS -------\n");
 
 	memset(bufferW, 't', BLOCK_SIZE);
 	fd = openFS("test.txt");
@@ -373,7 +373,7 @@ int main() {
 	}
 
 
-	fprintf(stdout, "%s", "TEST 5: lseekFS + writeFS + lseekFS + readFS\n");
+	fprintf(stdout, "%s", "TEST 5: lseekFS(0) + writeFS + lseekFS(0) + readFS\n");
 	memset(bufferW, 'X', BLOCK_SIZE/2);
 	ret = lseekFS(fd, 0, FS_SEEK_BEGIN);
 	ret = writeFS(fd, bufferW, BLOCK_SIZE/2);
@@ -395,7 +395,7 @@ int main() {
 	error = 0;
 
 
-	fprintf(stdout, "%s", "TEST 6: lseekFS + writeFS + lsekkFS + readFS\n");
+	fprintf(stdout, "%s", "TEST 6: lseekFS(1848) + writeFS + lseekFS(0) + readFS\n");
 	memset(bufferW, 'Y', 300);
 	ret = lseekFS(fd, ((BLOCK_SIZE / 2) - 200), FS_SEEK_SET);
 	ret = writeFS(fd, bufferW, 300);
@@ -409,11 +409,6 @@ int main() {
 			break;
 		}
 		else if (i >= ((BLOCK_SIZE / 2) - 200) && i < ((BLOCK_SIZE / 2) + 100) && bufferR[i] != 'Y'){
-			error = 1;
-			fprintf(stdout, "%s%s%s\n", ANSI_COLOR_RED, "FAILED\n", ANSI_COLOR_RESET);
-			break;
-		}
-		else if (i >= ((BLOCK_SIZE / 2) + 100) && bufferR[i] != 0){
 			error = 1;
 			fprintf(stdout, "%s%s%s\n", ANSI_COLOR_RED, "FAILED\n", ANSI_COLOR_RESET);
 			break;
