@@ -9,10 +9,10 @@
 
 int main() {
 
-	int ret = 0, i = 0, fd = 0, error = 0;
-	char *bufferR = (char*) malloc(BLOCK_SIZE * sizeof(char));
-	char *bufferW = (char*) malloc(BLOCK_SIZE * sizeof(char));
+	char bufferR [BLOCK_SIZE];
+	char bufferW [BLOCK_SIZE];
 	char **files = (char**) malloc(50 * sizeof(char*));
+	int ret = 0, i = 0, fd = 0, error = 0;
 
 
 	/* -------------------------------- mkFS ---------------------------------- */
@@ -38,7 +38,7 @@ int main() {
 
 
 	fprintf(stdout, "%s", "TEST 3: Creating a device with valid parameters\n");
-	ret = mkFS(50, 400000);
+	ret = mkFS(10, 400000);
 	if (ret != 0) {
 		fprintf(stdout, "%s%s%s\n", ANSI_COLOR_RED, "FAILED\n", ANSI_COLOR_RESET);
 	}
@@ -119,11 +119,35 @@ int main() {
 	fprintf(stdout, "%s", "TEST 4: creatFS with a long name\n");
 	ret = creatFS("loooooooooooooooooooooooooooooooooooooooooooooooooooooooooong.txt");
 	if (ret != -1) {
+		fprintf(stdout, "%s%s%s", ANSI_COLOR_RED, "FAILED\n", ANSI_COLOR_RESET);
+	}
+	else {
+		fprintf(stdout, "%s%s%s", ANSI_COLOR_GREEN, "SUCCESS\n", ANSI_COLOR_RESET);
+	}
+
+
+	fprintf(stdout, "%s", "TEST 5: creatFS when there is no space\n");
+	creatFS("test2.txt");
+	creatFS("test3.txt");
+	creatFS("test4.txt");
+	creatFS("test5.txt");
+	creatFS("test6.txt");
+	creatFS("test7.txt");
+	creatFS("test8.txt");
+	creatFS("test9.txt");
+	creatFS("test10.txt");
+
+	ret = creatFS("test11.txt");
+	if (ret != -1) {
 		fprintf(stdout, "%s%s%s\n", ANSI_COLOR_RED, "FAILED\n", ANSI_COLOR_RESET);
 	}
 	else {
 		fprintf(stdout, "%s%s%s\n", ANSI_COLOR_GREEN, "SUCCESS\n", ANSI_COLOR_RESET);
 	}
+
+	mkFS(50, 400000);
+	mountFS();
+	creatFS("test.txt");
 
 
 
@@ -592,8 +616,6 @@ int main() {
 	}
 
 
-	free(bufferR);
-	free(bufferW);
 	free(files);
 	return 0;
 }

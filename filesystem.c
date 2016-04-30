@@ -27,7 +27,6 @@ typedef struct sblock {
 	unsigned char numberINodes;
 	char firstDataBlock;
 	char maximumFiles;
-	char mounted;
 
 } sblock;
 
@@ -37,7 +36,8 @@ inode inodes[50];
 
 int sblockSize = sizeof(superBlock);
 int inodesSize = sizeof(inode) * 50;
-int i, j, k;
+int i, j, k, mounted = 0;
+
 
 /* PRIVATE FUNCTION TO BE ABLE OF WORKING WITH THE FILES BITMAP */
 long power (int base, int exponent){
@@ -76,8 +76,7 @@ int mkFS (int maxNumFiles, long deviceSize) {
 
 	superBlock.numberINodes = 0;
 	superBlock.firstDataBlock = 2;
-	superBlock.maximumFiles = maxNumFiles;
-	superBlock.mounted = 0;
+	superBlock.maximumFiles = (char) maxNumFiles;
 
 	// Initializing all the inodes structures to their default values
 	for (i = 0; i < 50 ; i++){
@@ -130,7 +129,7 @@ int mountFS () {
 	}
 
 	memcpy(inodes, block, inodesSize);
-	superBlock.mounted = 1;
+	mounted = 1;
 	return 0;
 }
 
@@ -162,7 +161,7 @@ int umountFS () {
 		return -1;
 	}
 
-	superBlock.mounted = 0;
+	mounted = 0;
 	return 0;
 }
 
@@ -175,7 +174,7 @@ int umountFS () {
 int creatFS(char *fileName) {
 
 	// Checking if the file system is mounted
-	if (superBlock.mounted == 0){
+	if (mounted == 0){
 		return -1;
 	}
 
@@ -207,7 +206,7 @@ int creatFS(char *fileName) {
 int openFS (char *fileName) {
 
 	// Checking if the file system is mounted
-	if (superBlock.mounted == 0){
+	if (mounted == 0){
 		return -2;
 	}
 
@@ -238,7 +237,7 @@ int openFS (char *fileName) {
 int closeFS (int fileDescriptor) {
 
 	// Checking if the file system is mounted
-	if (superBlock.mounted == 0){
+	if (mounted == 0){
 		return -1;
 	}
 
@@ -259,7 +258,7 @@ int closeFS (int fileDescriptor) {
 int readFS (int fileDescriptor, void *buffer, int numBytes) {
 
 	// Checking if the file system is mounted
-	if (superBlock.mounted == 0){
+	if (mounted == 0){
 		return -1;
 	}
 
@@ -311,7 +310,7 @@ int readFS (int fileDescriptor, void *buffer, int numBytes) {
 int writeFS (int fileDescriptor, void *buffer, int numBytes) {
 
 	// Checking if the file system is mounted
-	if (superBlock.mounted == 0){
+	if (mounted == 0){
 		return -1;
 	}
 
@@ -365,7 +364,7 @@ int writeFS (int fileDescriptor, void *buffer, int numBytes) {
 int lseekFS (int fileDescriptor, long offset, int whence) {
 
 	// Checking if the file system is mounted
-	if (superBlock.mounted == 0){
+	if (mounted == 0){
 		return -1;
 	}
 
@@ -408,7 +407,7 @@ int lseekFS (int fileDescriptor, long offset, int whence) {
 int tagFS (char *fileName, char *tagName) {
 
 	// Checking if the file system is mounted
-	if (superBlock.mounted == 0){
+	if (mounted == 0){
 		return -1;
 	}
 
@@ -513,7 +512,7 @@ int tagFS (char *fileName, char *tagName) {
 int untagFS (char *fileName, char *tagName) {
 
 	// Checking if the file system is mounted
-	if (superBlock.mounted == 0){
+	if (mounted == 0){
 		return -1;
 	}
 
@@ -586,7 +585,7 @@ int untagFS (char *fileName, char *tagName) {
 int listFS (char *tagName, char **files) {
 
 	// Checking if the file system is mounted
-	if (superBlock.mounted == 0){
+	if (mounted == 0){
 		return -1;
 	}
 
