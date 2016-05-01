@@ -36,7 +36,7 @@ inode inodes[50];
 
 int sblockSize = sizeof(superBlock);
 int inodesSize = sizeof(inode) * 50;
-int i, j, k, mounted = 0;
+int mounted, i, j, k;
 
 
 /* PRIVATE FUNCTION TO BE ABLE OF WORKING WITH THE FILES BITMAP */
@@ -79,7 +79,7 @@ int mkFS (int maxNumFiles, long deviceSize) {
 	superBlock.maximumFiles = (char) maxNumFiles;
 
 	// Initializing all the inodes structures to their default values
-	for (i = 0; i < 50 ; i++){
+	for (i = 0; i < maxNumFiles ; i++){
 		strncpy(inodes[i].name, "", 64);
 		inodes[i].size = 0;
 		inodes[i].position = 0;
@@ -107,6 +107,7 @@ int mkFS (int maxNumFiles, long deviceSize) {
 		return -1;
 	}
 
+	mounted = 0;
 	return 0;
 }
 

@@ -271,7 +271,7 @@ int main() {
 
 	fd = openFS("test.txt");
 
-	fprintf(stdout, "%s", "TEST 2: writeFS an wrong file descriptor\n");
+	fprintf(stdout, "%s", "TEST 2: writeFS a wrong file descriptor\n");
 	ret = writeFS(55, bufferW, BLOCK_SIZE);
 	if (ret != -1) {
 		fprintf(stdout, "%s%s%s", ANSI_COLOR_RED, "FAILED\n", ANSI_COLOR_RESET);
