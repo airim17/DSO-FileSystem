@@ -1,106 +1,85 @@
-# DSO-FileSystem
+# File System
 
-### Estructuras:
+### What is it?
+The <a href="https://en.wikipedia.org/wiki/File_system">File System</a> is the part of the operating System in charge of organizing and dealing with folders and files. In order to do so, it needs to manage not only the data, but also the metadata of every folder or file.
 
-#### Superbloque:
-    1. Mapa de bits, indicando qué bloques están ocupados. (1 long) (TRANSFORMACION DIV. ENTRE 2)
-    2. Mapa de bits, indicando qué i-nodos están ocupados. (1 long) (TRANSFORMACION DIV. ENTRE 2)
-    * SE NECESITAN LOS 2 BITMAPS? (Esperar correo Rafael Sotomayor)
-    3. Mapa de etiquetas 30X (identificador de etiqueta (1B) + nombre de etiqueta (32B) + número de veces(1B) + lista de ficheros con esa etiqueta (1B) (TRANSFORMACION DIV. ENTRE 2)
-    4. Numero de i-nodos (1B)
-    5. Número de bloques de datos (1B)
-    6. Número máximo de ficheros (1B)
-    7. Tamaño de disco (short) (entre 320 - 500).
-    8. PrimerBloqueDatos. (1B)
-    9. Número mágico (1 int)
-    10. Padding (hasta ocupar un bloque)
-    
-    
-#### I-nodo:
-    1. ID (1B).
-    2. Nombre del fichero (64B).
-    3. Tamaño (Short).
-    4. Abierto/cerrado (1B).
-    5. Posición en el fichero (Short) <-- Se resetea en el openFS / closeFS
-    5. Bloque Directo (1B).
-    6. Etiquetas (3B).
+### What is in the repository?
+The files contained with the repository are the following ones:
 
-### Implementación:
+#### 1. create_disk
+File that checks if the file <i>disk.dat</i> exist and can be open. This file will simulate a real hard disk.
 
-#### mkFS (número ficheros, tamaño disco):
-1. Comprobar que el tamaño de ficheros NO es superior a 50.
-2. Comprobar que el tamaño del disco está entre 320 y 500 (ya se presupone KB).
-3. Formatea el tamaño de disco indicado escribiendo todo 0s.
-4. Escribe el primer bloque del disco con la información inicial proporcionada, el resto de datos: 0.
+#### 2. disk.dat
+File that simulates a real hard disk. It is full of zeroes.
 
-#### Mount( ):
-1. Se lee el superbloque (primer bloque del disco).
-2. Se guardar estos datos en el Superbloque (como variable global).
+#### 3. filesystem
+File where the file system is implemented. It has the following <b>characteristics</b>:
+
+1. It can contain up to 50 files.
+2. The maximum file name could contain up to 64 characters.
+3. The maximum file size is 4KB.
+4. The file system block size is 4KB.
+5. There could be up to 30 tags into the file system.
+6. The maximum tag name could contain up to 32 characters.
+7. Each file could have up to 3 associated tags.
+
+These characteristics give us an idea of the size of the file system. Although it is a small one, the concepts applied to its development should be applied into the development of largest file systems.
+
+#### 4 include
+Folder containning a pair of header files.
+
+#### 5. Makefile
+File to compile the other repository files. It can be also used to remove the compiled ones.
+```shell
+$ make
+gcc -g -Wall -I./include -o create_disk create_disk.c
+gcc -g -Wall -I./include   -c -o ufs.o ufs.c
+gcc -g -Wall -I./include   -c -o filesystem.o filesystem.c
+ar rcv libfs.a ufs.o filesystem.o
+a - ufs.o
+a - filesystem.o
+gcc -g -Wall -I./include -o test test.c libfs.a
+```
+
+```shell
+$ make clean 
+rm -f libfs.a ufs.o filesystem.o test create_disk create_disk.o
+```
+
+#### 6. ufs
+File that simulates the hard disk driver. It allow us to read and write entire blocks of data from the disk. Remember that the block size is 4KB.
+
+### Possible operations
+
+* <b>mkFS (maxNumFiles, deviceSize):</b> It will initialize all the metadata structures.<br>
+<b>Parameters:</b> The maximum number of files and the total device size (between 320KB and 500KB).
+* <b>mountFS:</b> It will simulate the mounting process into the Operating System current file system.
+* <b>umountFS:</b> It will simulate the unmounting process into the Operating System current file system.
+* <b>creatFS (fileName):</b> It will create a file.<br>
+<b>Parameters:</b> The name of the created file.
+* <b>openFS (fileName):</b> It will open a file in order to read or write on it.<br>
+<b>Parameters:</b> The name of the file.
+* <b>closeFS (fileDescriptor):</b> It will close the specified file.<br>
+<b>Parameters:</b> The name of the file.
+* <b>readFS (fileDescriptor, buffer, numBytes):</b> It will read the data of a given file from the reader/writer header up to the number of bytes specified, storing the result into the buffer.<br>
+<b>Parameters:</b> The file descriptor, a buffer of at least 4KB, and the number of bytes to read.
+* <b>writeFS (fileDescriptor, buffer, numBytes):</b> It will write as many bytes as specified into the file, from the buffer.<br>
+<b>Parameters:</b> The file descriptor, a buffer containing the content to be written and the number of bytes to write.
+* <b>lseekFS (fileDescriptor, offset, whence):</b> It will move the reading/writting header of a file to the specified position.
+* <b>tagFS (fileName, tagName):</b> It will tag a file with the specified tag. If the tag does not exist, it will be created.<br>
+<b>Parameters:</b> The file name and the tag name. 
+* <b>untagFS (fileName, tagName):</b> It will remove the specified tag from the specified file. Returns and error if the tag was not previously associated to that file.<br>
+<b>Parameters:</b> The file name and the tag name.
+* <b>listFS (tagName, files):</b> It will store into the <i>files</i> array all the files containing the specified tag.<br>
+<b>Parameters:</b> The tag name and an an array of strings <i>(char**)</i>.
 
 
-#### Unmount( ):
-1. Escribe en el Superbloque (primer bloque del disco) lo que hay en la variable global.
-2. ¿Escribe 0s en el Superbloque global?
+### Testing
+There is an additional file with the repository, called <i>test.c</i>. It is where all the different possible operations for the file system are tested, checking if they do what they are supossed to do. <b>Every operation has been checked</b>. Additional advance tests could be added if needed.
 
 
-#### CreatFS (filename):
-1. Si el número de i-nodos > número máximo, indicado: Error.
-2. Utilizando el número de inodos del superbloque, comprobar si ya hay uno con ese nombre.
-3. Si no lo hay, se le asigna el siguiente i-nodo libre.
-4. Actualizar el número de inodos del superbloque.
-5. Guardar el nombre en el i-nodo.
-6. Guardar todo 0s.
-7. Se actualiza el bitmap de I-nodos.
-8. ¿¿Se le asocia el siguiente bloque de datos libre?? (SI NO,SE NECESITAN 2 BITMAPS).
+### Requirements
+This File System is designed to work in a UNIX operating system. The reasons of this requirement are two: First of all a GCC (GNU Compiler-Compiler) is needed to execute the Makefile and compile the files; and secondly, because the System Calls could have a different name in other operating systems. Those which fullfill the requirements are:
 
-
-#### openFS (nombre de fichero):
-1. Comprobar que hay un i-nodo con ese nombre, sino: Error.
-2. Se cambia el campo del i-nodo y se pone como "Abierto" (1).
-3. Devuelve el identificador del i-nodo <b>(como se usa en otros procesos, tiene que marcar el número de bloque)</b>
-
-
-#### closeFS (descriptor del fihero):
-1. Comprueba que el fichero está abierto, sino; Error.
-2. Cambia el campo del i-nodo y lo pone como "Cerrado" (0).
-
-
-#### readFS (descriptor, buffer, numBytes)
-1. Se comprueba que el fichero está abierto y si está ocupado(?).
-2. Si lo está, se leen tantos bytes como se indica, utilizando bread() y se guardan en el buffer que nos pasan.
-3. Se lee la posición del puntero (i-nodo) y se pone a leer desde ahí.
-4. Variable que guarde cuandos Bs se han leido, y se devuelve.
-
-
-#### writeFS(descriptor, buffer, numBytes):
-1. Se comprueba que el fichero está abierto (?).
-2. Si lo está, se escriben tantos bytes como se indica, utilizando bwrite() cogiendolos del buffer que nos pasan.
-3. Se lee la posición del puntero (i-nodo) y se pone a escribir desde ahí.
-4. Si numBytes a escribir + posicion puntero > tamaño máximo datos: Error, y no se escribe ninguno.
-5. Se actualiza el bitmap de bloques de datos usados. <b>REVISAR</b>
-6. Variable que guarde cuandos Bs se han escrito, y se devuelve.
-
-#### lseek (descriptor, offset, whence):
-1. Actualiza la posición del puntero de ese i-nodo a la posicion indicada.
-2. Si es mayor que el tamaño actual del fichero o menor que 0 da error.
-3. Tener en cuenta los tipos de desplazamiento. ("Whence" lo indica).
-
-#### Tag (filename, tag):
-1. Se comprueba que dicha etiqueta está en el mapa de etiquetas:<br>
-    1.1 Si está, se añade 1 al contador, y se añade el ID del fichero.<br>
-    1.2 Si no está y <b>hay hueco en los 30 espacios</b>, se crea, con el contador a 1.<br>
-2. Se añade a dicho fichero, el ID de la tag asociada, <b>en caso de haber hueco</b><br>
-
-#### Untag (filename, tag):<br>
-1. Se comprueba que dicha etiqueta está en el mapa de etiquetas:<br>
-    1.1 Si está, se resta 1 al contador, y se quita el ID del fichero.<br>
-    1.2 Si no está: Error.<br>
-2. Se quita de dicho fichero, la tag asociada.<br>
-3. Si el contador de la tag llega a 0, se elimina.<br>
-
-#### listFS (tag, lista):
-1. Se comprueba que la etiqueta existe.<br>
-2. Se recorre la lista accediendo a cada uno de los i-nodos.<br>
-3. Se comprueba si dichos ficheros están cerrados.<br>
-    3.1 Si lo están, se añaden a la lista.<br>
-    3.2 Sino, no.<br>
+<b>A) Mac OSX.</b><br>
+<b>B) Any Linux distribution.</b>
