@@ -7,7 +7,7 @@ The <a href="https://en.wikipedia.org/wiki/File_system">File System</a> is the p
 The files contained with the repository are the following ones:
 
 #### 1. create_disk
-File that checks if the file <i>disk.dat</i> exist and can be open. This file will simulate a real hard disk.
+File that checks if the simulated hard disk <i>(disk.dat)</i> exist and can be open.
 
 #### 2. disk.dat
 File that simulates a real hard disk. It is full of zeroes.
@@ -44,7 +44,7 @@ rm -f libfs.a ufs.o filesystem.o test create_disk create_disk.o
 ```
 
 #### 5. ufs
-File that simulates the hard disk driver. It allow us to read and write entire blocks of data from the disk. Remember that the block size is 4KB.
+File that simulates the hard disk driver. It allow us to read and write entire blocks of data from the disk (block size = 4KB).
 
 ### Possible operations
 
