@@ -1,7 +1,7 @@
 # File System
 
 ### What is it?
-The <a href="https://en.wikipedia.org/wiki/File_system">File System</a> is the part of the Operating System in charge of organizing and dealing with folders and files. In order to do so, it needs to manage not only the data, but also the metadata of every folder or file.
+The <a href="https://en.wikipedia.org/wiki/File_system">File System</a> is the part of the Operating System in charge of organizing and dealing with folders and files. In order to do so, it needs to manage not only the data, but also the <a href="https://en.wikipedia.org/wiki/Metadata">metadata</a> of every folder or file.
 
 ### What is in the repository?
 
