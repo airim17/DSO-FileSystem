@@ -4,7 +4,6 @@
 The <a href="https://en.wikipedia.org/wiki/File_system">File System</a> is the part of the Operating System in charge of organizing and dealing with folders and files. In order to do so, it needs to manage not only the data, but also the metadata of every folder or file.
 
 ### What is in the repository?
-The files contained with the repository are the following ones:
 
 #### 1. create_disk
 File that checks if the simulated hard disk <i>(disk.dat)</i> exist and can be open.
