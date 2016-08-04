@@ -1,17 +1,16 @@
 # File System
 
-### What is it?
 The <a href="https://en.wikipedia.org/wiki/File_system">File System</a> is the part of the Operating System in charge of organizing and dealing with folders and files. In order to do so, it needs to manage not only the data, but also the <a href="https://en.wikipedia.org/wiki/Metadata">metadata</a> of every folder or file.
 
-### What is in the repository?
+## What is in the repository?
 
-#### 1. create_disk
+### 1. create_disk
 File that checks if the simulated hard disk <i>(disk.dat)</i> exist and can be open.
 
-#### 2. disk.dat
+### 2. disk.dat
 File that simulates a real hard disk. It is full of zeroes.
 
-#### 3. filesystem
+### 3. filesystem
 File where the file system is implemented. It has the following <b>properties</b>:
 
 <b>1.</b> It can contain up to 50 files.<br>
@@ -24,7 +23,7 @@ File where the file system is implemented. It has the following <b>properties</b
 
 These characteristics give us an idea of the size of the file system. Although it is a small one, the concepts applied to its development should be applied into the development of largest file systems.
 
-#### 4. Makefile
+### 4. Makefile
 File to compile the other repository files. It can be also used to remove the compiled ones.
 ```shell
 $ make
@@ -42,10 +41,10 @@ $ make clean
 rm -f libfs.a ufs.o filesystem.o test create_disk create_disk.o
 ```
 
-#### 5. ufs
+### 5. ufs
 File that simulates the hard disk driver. It allow us to read and write entire blocks of data from the disk (block size = 4KB).
 
-### Possible operations
+## Possible operations
 
 * <b>mkFS (maxNumFiles, deviceSize):</b> It will initialize all the metadata structures.<br>
 <b>Parameters:</b> The maximum number of files and the total device size (between 320KB and 500KB).<br>
@@ -82,17 +81,17 @@ File that simulates the hard disk driver. It allow us to read and write entire b
 <b>Parameters:</b> The tag name and an an array of strings <i>(char**)</i>.
 
 
-### Testing
+## Testing
 There is an additional file with the repository, called <i>test.c</i>. It is where all the different possible operations for the file system are tested, checking if they do what they are supossed to do. <b>Every operation has been checked</b>. Additional advance tests could be added if needed.
 
 
-### Requirements
+## Requirements
 This File System is designed to work in a UNIX operating system. The reasons of this requirement are two: First of all a GCC (GNU Compiler-Compiler) is needed to execute the Makefile and compile the files; and secondly, because the System Calls could have a different name in other operating systems. Those which fulfill the requirements are:
 
 <b>A) Mac OSX.</b><br>
 <b>B) Any Linux distribution.</b>
 
-### Team members:
+## Team members:
 
 <a href="https://github.com/fyrier">Silvia Barbero Rodríguez</a>
 <br>
