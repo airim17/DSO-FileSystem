@@ -92,7 +92,8 @@ This File System is designed to work in a UNIX operating system. The reasons of 
 <b>B) Any Linux distribution.</b>
 
 ## Team members:
-
+<a href="https://github.com/Sinclert">Sinclert Pérez Castaño</a>
+<br>
 <a href="https://github.com/fyrier">Silvia Barbero Rodríguez</a>
 <br>
 <a href="https://github.com/talyBb">Natalia Carla Carrillo</a>
